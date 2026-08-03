@@ -72,6 +72,7 @@ export async function MDXContent({
   if (!compiled.ok) {
     // Source isn't valid MDX/JSX (e.g. stray `<`/`{` in prose) — fail soft instead
     // of crashing the page; render it as plain text so the copy still shows.
+    console.error("MDX compile failed, rendering as plain text", compiled.error);
     return (
       <Wrapper className={wrapperClass}>
         <ErrorTag>{source}</ErrorTag>
