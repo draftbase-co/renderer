@@ -1,0 +1,208 @@
+/* Slim default typography for Draftbase MDX content.
+   Opt-in: import "@draftbase/react/styles.css".
+   Disable per-render: <MDXContent unstyled />.
+   Override: target ".db-content" with higher-specificity or later-loaded rules. */
+
+.db-content {
+  line-height: 1.6;
+  color: inherit;
+}
+
+.db-content > :first-child {
+  margin-top: 0;
+}
+.db-content > :last-child {
+  margin-bottom: 0;
+}
+
+.db-content h1,
+.db-content h2,
+.db-content h3,
+.db-content h4,
+.db-content h5,
+.db-content h6 {
+  font-weight: 600;
+  line-height: 1.25;
+  margin: 1.5em 0 0.5em;
+  color: inherit;
+}
+
+.db-content h1 {
+  font-size: 2em;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.025em;
+  margin-top: 1.25em;
+}
+
+.db-content h2 {
+  font-size: 1.625em;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+  margin-top: 1.75em;
+}
+
+.db-content h3 {
+  font-size: 1.375em;
+  line-height: 1.3;
+}
+
+.db-content h4 {
+  font-size: 1.25em;
+  line-height: 1.35;
+}
+
+.db-content h5 {
+  font-size: 1.125em;
+  line-height: 1.4;
+}
+
+.db-content h6 {
+  font-size: 1em;
+  line-height: 1.4;
+}
+
+@media (max-width: 640px) {
+  .db-content h1 {
+    font-size: 1.75em;
+  }
+  .db-content h2 {
+    font-size: 1.4em;
+  }
+  .db-content h3 {
+    font-size: 1.2em;
+  }
+}
+
+.db-content p,
+.db-content ul,
+.db-content ol,
+.db-content blockquote,
+.db-content pre,
+.db-content table {
+  margin: 0 0 1em;
+}
+
+.db-content ul,
+.db-content ol {
+  padding-left: 1.5em;
+}
+
+.db-content ul {
+  list-style-type: disc;
+}
+
+.db-content ol {
+  list-style-type: decimal;
+}
+
+.db-content ul ul {
+  list-style-type: circle;
+}
+
+.db-content ol ol {
+  list-style-type: lower-alpha;
+}
+
+.db-content ul ul ul,
+.db-content ol ol ol {
+  list-style-type: square;
+}
+
+.db-content li {
+  margin: 0.25em 0;
+}
+.db-content li > ul,
+.db-content li > ol {
+  margin: 0.25em 0 0;
+}
+.db-content li > p {
+  margin: 0;
+}
+
+.db-content ul.contains-task-list {
+  list-style: none;
+  padding-left: 0.25em;
+}
+.db-content li.task-list-item {
+  list-style: none;
+  margin-left: 0;
+}
+.db-content li.task-list-item input[type="checkbox"] {
+  margin-right: 0.5em;
+}
+
+.db-content strong {
+  font-weight: 600;
+}
+.db-content em {
+  font-style: italic;
+}
+.db-content del {
+  text-decoration: line-through;
+  opacity: 0.75;
+}
+
+.db-content blockquote {
+  margin-left: 0;
+  padding-left: 1em;
+  border-left: 3px solid currentColor;
+  opacity: 0.85;
+}
+
+.db-content code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.9em;
+  padding: 0.15em 0.35em;
+  background: rgba(127, 127, 127, 0.15);
+  border-radius: 4px;
+}
+
+.db-content pre {
+  padding: 1em;
+  overflow-x: auto;
+  background: rgba(127, 127, 127, 0.1);
+  border-radius: 8px;
+}
+.db-content pre code {
+  padding: 0;
+  background: none;
+}
+
+.db-content table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.db-content th,
+.db-content td {
+  border: 1px solid rgba(127, 127, 127, 0.3);
+  padding: 0.5em 0.75em;
+  text-align: left;
+}
+
+.db-content th {
+  background: rgba(127, 127, 127, 0.08);
+  font-weight: 600;
+}
+
+.db-content img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+}
+
+.db-content a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.db-content a:hover {
+  opacity: 0.8;
+}
+
+.db-content hr {
+  border: none;
+  border-top: 1px solid rgba(127, 127, 127, 0.3);
+  margin: 2em 0;
+}
