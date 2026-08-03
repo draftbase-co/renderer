@@ -45,7 +45,6 @@
     "remark-gfm": "^4.0.0"
   },
   "devDependencies": {
-    "@draftbase/tsconfig": "workspace:*",
     "@types/mdx": "^2.0.13",
     "@types/node": "^22.9.0",
     "@types/react": "^19.0.0",
