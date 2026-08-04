@@ -1,6 +1,6 @@
 # @draftbase/renderer
 
-Framework-agnostic MDX renderer for a Draftbase entry's MDX/markdown field. Works with plain React, React Native, and Next.js App Router.
+Framework-agnostic MDX renderer for a Draftbase entry's MDX/markdown field. `compileMDX` is a plain async function that returns a standard React component — it has no dependency on Next.js, a bundler, or a router, so it works anywhere React runs: Next.js App Router, plain client-side React, React Native, Remix, Astro (via `@astrojs/react` islands), Vite + React, and so on.
 
 ## Install
 
@@ -52,6 +52,46 @@ function Entry({ source }: { source: string }) {
 ```
 
 Extended markdown (tables, strikethrough, task lists, autolinks) is supported out of the box via `remark-gfm`.
+
+## Astro
+
+Astro components aren't React, so render through a React island. Compile server-side in the `.astro` frontmatter (Astro's runtime does allow `await` there), then hand the compiled `Content` to a small client React wrapper component:
+
+```astro
+---
+import { compileMDX } from "@draftbase/renderer";
+import MDXIsland from "../components/MDXIsland"; // the client wrapper below
+
+const compiled = await compileMDX(entry.fields.body);
+---
+
+<MDXIsland client:load compiled={compiled} />
+```
+
+```tsx
+// src/components/MDXIsland.tsx
+import type { CompiledMDX, FailedMDX } from "@draftbase/renderer";
+
+export default function MDXIsland({ compiled }: { compiled: CompiledMDX | FailedMDX }) {
+  if (!compiled.ok) return <p>{/* fallback text */}</p>;
+  const { Content } = compiled;
+  return <Content />;
+}
+```
+
+## Vite + React
+
+No RSC in a Vite SPA — use the `compileMDX`-in-`useEffect` pattern from the section above.
+
+## Static HTML
+
+For contexts that need a plain HTML string instead of a mounted React tree (email, RSS, non-React embeds), use `toHtml` — headings get `id` slugs (via `rehype-slug`) for anchor links:
+
+```ts
+import { toHtml } from "@draftbase/renderer";
+
+const html = await toHtml(entry.fields.body);
+```
 
 ## Custom components
 

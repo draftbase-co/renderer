@@ -1,2 +1,3 @@
-export { MDXContent } from "./MDXContent.js";
-export type { MDXContentProps } from "./MDXContent.js";
+export { MDXContent, compileMDX } from "./MDXContent.js";
+export type { MDXContentProps, CompiledMDX, FailedMDX } from "./MDXContent.js";
+export { toHtml } from "./toHtml.js";

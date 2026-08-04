@@ -1,6 +1,7 @@
 import { evaluate } from "@mdx-js/mdx";
 import * as runtime from "react/jsx-runtime";
 import remarkGfm from "remark-gfm";
+import rehypeSlug from "rehype-slug";
 import type { MDXComponents } from "mdx/types";
 import type { ComponentType, ElementType, ReactNode } from "react";
 import { wrapperClassName } from "./wrapperClassName.js";
@@ -25,6 +26,7 @@ export async function compileMDX(source: string): Promise<CompiledMDX | FailedMD
     const { default: Content } = await evaluate(source, {
       ...runtime,
       remarkPlugins: [remarkGfm],
+      rehypePlugins: [rehypeSlug],
     });
     return { ok: true, Content };
   } catch (error) {
