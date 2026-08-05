@@ -1,6 +1,16 @@
 # @draftbase/renderer
 
-Framework-agnostic MDX renderer for a Draftbase entry's MDX/markdown field. `compileMDX` is a plain async function that returns a standard React component — it has no dependency on Next.js, a bundler, or a router, so it works anywhere React runs: Next.js App Router, plain client-side React, React Native, Remix, Astro (via `@astrojs/react` islands), Vite + React, and so on.
+Framework-agnostic MDX renderer for [Draftbase](https://draftbase.co), the MDX-based headless CMS for React developers. Takes an entry's MDX/markdown field and renders it into a real component tree (React or Vue) or a plain HTML string — no vendor lock-in to one frontend framework. `compileMDX` is a plain async function with no dependency on Next.js, a bundler, or a router.
+
+Every framework entry point exposes the **same API shape** — `compileMDX(source)` resolving to `{ ok: true, Content }` or `{ ok: false, error }` — so switching frameworks (or supporting several in one monorepo) means changing the import path, not the calling code:
+
+| Framework                                        | Import                                    | `Content` is a...                           |
+| ------------------------------------------------ | ----------------------------------------- | ------------------------------------------- |
+| React, Next.js, React Native, Remix, Astro, Vite | `@draftbase/renderer`                     | React component                             |
+| Vue                                              | `@draftbase/renderer/vue`                 | Vue component                               |
+| Anything else (Svelte, plain HTML, email, RSS)   | `toHtml` (below), from either entry point | — (returns an HTML string, not a component) |
+
+Only import the entry point for the framework you use — each pulls in just that framework's peer dependency (React or Vue), never both, so an app using one never bundles code for the other.
 
 ## Install
 
@@ -83,6 +93,72 @@ export default function MDXIsland({ compiled }: { compiled: CompiledMDX | Failed
 
 No RSC in a Vite SPA — use the `compileMDX`-in-`useEffect` pattern from the section above.
 
+## Vue
+
+`compileMDX` from the `/vue` entry point returns a Vue component instead of a React one — same `{ ok, Content }` / `{ ok, error }` shape. Vue has no RSC-style async component, so call it from `setup()`/a composable and render the result yourself, the same pattern as client-side React above:
+
+```vue
+<script setup>
+import { ref, onMounted } from "vue";
+import { compileMDX } from "@draftbase/renderer/vue";
+
+const props = defineProps<{ source: string }>();
+const compiled = ref();
+
+onMounted(async () => {
+  compiled.value = await compileMDX(props.source);
+});
+</script>
+
+<template>
+  <component :is="compiled.Content" v-if="compiled?.ok" />
+  <p v-else-if="compiled">{{ props.source }}</p>
+</template>
+```
+
+Custom components and markdown-element overrides pass through the same way, as a `components` prop on `Content`.
+
+## Nuxt
+
+Nuxt is Vue, so use the `/vue` entry point — same composable pattern as plain Vue above, from a Nuxt page/component:
+
+```vue
+<script setup>
+import { compileMDX } from "@draftbase/renderer/vue";
+
+const { data: entry } = await useAsyncData("entry", () => $fetch(`/api/blog/${route.params.slug}`));
+const compiled = ref();
+onMounted(async () => {
+  compiled.value = await compileMDX(entry.value.fields.body);
+});
+</script>
+
+<template>
+  <component :is="compiled.Content" v-if="compiled?.ok" />
+</template>
+```
+
+## SvelteKit, Angular, Solid, and other non-React/Vue frameworks
+
+This package ships React and Vue component output only. For any other framework, use `toHtml` (below) to get a plain HTML string and render it with each framework's raw-HTML primitive (Svelte's `{@html ...}`, Angular's `[innerHTML]`, Solid's `innerHTML` prop) — same as the Static HTML section:
+
+```ts
+// SvelteKit +page.server.ts
+import { toHtml } from "@draftbase/renderer";
+export async function load({ params }) {
+  const entry = await draftbase.getEntry(params.slug);
+  return { html: await toHtml(entry.fields.body) };
+}
+```
+
+```svelte
+<!-- +page.svelte -->
+<script>export let data;</script>
+{@html data.html}
+```
+
+`rehype-slug` still adds heading `id`s for anchor links even in the HTML-string path — sanitize/escape user-controlled content upstream as you would with any `{@html}`/`innerHTML` usage.
+
 ## Static HTML
 
 For contexts that need a plain HTML string instead of a mounted React tree (email, RSS, non-React embeds), use `toHtml` — headings get `id` slugs (via `rehype-slug`) for anchor links:
@@ -114,3 +190,32 @@ Any standard markdown element (`h1`, `table`, `a`, ...) can also be overridden t
 - Override: import your own CSS after it (or with higher specificity) targeting `.db-content`.
 - Extra classes: `<MDXContent source={...} className="prose" />`.
 - Custom wrapper/error element (e.g. React Native's `View`/`Text`): `<MDXContent source={...} wrapperTag={View} errorTag={Text} />`.
+
+## Using with Claude Code / AI coding agents
+
+If you're an agent wiring this into a project, follow this checklist:
+
+1. **Install**: `pnpm add @draftbase/renderer` (or `npm`/`yarn` — detect the project's package manager first).
+2. **Pick the right entry point first** — check the target framework in the table at the top of this file, then import only that one (`@draftbase/renderer` vs `@draftbase/renderer/vue`). Importing the wrong one pulls in a peer dependency (React or Vue) the project may not have installed, and will fail to resolve.
+3. **Detect RSC support before choosing a pattern**: Next.js App Router (or another RSC framework) → use `<MDXContent source={...} />` directly, it's an async Server Component. Everything else (client-side React, React Native, Remix, Vite SPA, Vue) → use the `compileMDX(source)` + state/ref pattern shown above; do not try to `await` it inside a plain client component render.
+4. **Every `compileMDX`/`MDXContent` result is a discriminated union** — always branch on `.ok` before touching `.Content`; treat `!ok` as a real render path (show `.error` or fallback text), don't just assume success.
+5. **Non-DOM renderers (React Native, custom email/RSS pipelines) have no intrinsic HTML tags** — you must pass a `components` map covering every markdown element actually used in the source (`p`, `h1`-`h6`, `a`, `img`, `table`, ...), or those elements will fail to render. For plain HTML output (email, RSS, non-React embeds) use `toHtml` instead of a component tree.
+6. **Don't hand-roll styling** — import `@draftbase/renderer/styles.css` for sensible defaults, or pass `unstyled`/`className` on `MDXContent`, rather than writing new prose/typography CSS from scratch.
+7. **This package ships zero bundled React/Vue** — both are optional peer dependencies. If the target project doesn't already have the matching framework installed, install it too or the build will fail.
+
+## FAQ
+
+**What is Draftbase?**
+Draftbase is a lightweight, MDX-based headless CMS built for React and Next.js developers. Content is authored as MDX/markdown with typed fields, fetched via [`@draftbase/sdk`](https://www.npmjs.com/package/@draftbase/sdk), and rendered into real components with this package.
+
+**Why MDX instead of plain markdown or a block-based rich-text editor?**
+MDX lets authors drop live, typed React/Vue components (callouts, embeds, product cards) directly inside prose, while still compiling down to plain HTML for frameworks that don't run JSX. Plain markdown can't embed components; block editors trade that flexibility for a rigid, CMS-specific JSON schema.
+
+**Does this work with static site generators (SSG) as well as SSR?**
+Yes — `compileMDX`/`MDXContent` are plain async functions with no request-scoped state, so they run identically at build time (Next.js `generateStaticParams`, Astro static output, Nuxt `nitro` prerender) or at request time (SSR/RSC).
+
+**Is the compiled output safe for SEO?**
+Yes — `compileMDX`/`toHtml` produce standard semantic HTML (headings, lists, tables, links) server-side, so it's fully crawlable and indexable with no client-side rendering required; `rehype-slug` also adds heading `id`s for deep-linkable anchor URLs.
+
+**Which frontend frameworks are supported?**
+React (Next.js App Router/RSC, plain client React, React Native, Remix, Astro islands, Vite) and Vue (including Nuxt) get first-class component output. Any other framework (Svelte, Angular, Solid, plain HTML/email/RSS) can use `toHtml` to get a plain HTML string instead.

@@ -1,12 +1,13 @@
 {
   "name": "@draftbase/renderer",
   "version": "0.1.0",
-  "description": "Framework-agnostic MDX renderer for Draftbase content (React, Next.js RSC, React Native, Astro, Vite)",
+  "description": "Framework-agnostic MDX renderer for Draftbase content (React, Next.js RSC, React Native, Astro, Vite, Vue)",
   "keywords": [
     "draftbase",
     "mdx",
     "cms",
     "react",
+    "vue",
     "renderer",
     "astro",
     "vite"
@@ -25,8 +26,12 @@
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "sideEffects": [
+    "*.css"
+  ],
   "exports": {
     ".": "./dist/index.js",
+    "./vue": "./dist/vue.js",
     "./styles.css": "./dist/styles.css"
   },
   "files": [
@@ -37,10 +42,19 @@
   "scripts": {
     "build": "tsc -p tsconfig.json && cp src/styles.css dist/styles.css",
     "lint": "tsc --noEmit",
-    "test": "node --test dist/wrapperClassName.test.js dist/toHtml.test.js"
+    "test": "node --test dist/wrapperClassName.test.js dist/toHtml.test.js dist/compileMDX.test.js"
   },
   "peerDependencies": {
-    "react": ">=18"
+    "react": ">=18",
+    "vue": ">=3"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    },
+    "vue": {
+      "optional": true
+    }
   },
   "dependencies": {
     "@mdx-js/mdx": "^3.1.1",
@@ -56,6 +70,7 @@
     "@types/node": "^22.9.0",
     "@types/react": "^19.0.0",
     "react": "^19.0.0",
+    "vue": "^3.5.0",
     "typescript": "^5.6.0"
   }
 }

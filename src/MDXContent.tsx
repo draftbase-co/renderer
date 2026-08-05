@@ -1,9 +1,7 @@
-import { evaluate } from "@mdx-js/mdx";
 import * as runtime from "react/jsx-runtime";
-import remarkGfm from "remark-gfm";
-import rehypeSlug from "rehype-slug";
 import type { MDXComponents } from "mdx/types";
 import type { ComponentType, ElementType, ReactNode } from "react";
+import { compileMDXCore, type FailedMDX } from "./core.js";
 import { wrapperClassName } from "./wrapperClassName.js";
 
 export interface CompiledMDX {
@@ -11,27 +9,15 @@ export interface CompiledMDX {
   Content: ComponentType<{ components?: MDXComponents }>;
 }
 
-export interface FailedMDX {
-  ok: false;
-  error: unknown;
-}
+export type { FailedMDX };
 
 /**
- * Compiles raw MDX/markdown into a renderable component. Framework-agnostic — no JSX,
- * no DOM assumptions, safe to call from a React Native loader, a client-side effect,
- * or a Next.js Server Component (the `MDXContent` component below does the latter).
+ * Compiles raw MDX/markdown into a renderable React component — no DOM assumptions,
+ * safe to call from a React Native loader, a client-side effect, or a Next.js Server
+ * Component (the `MDXContent` component below does the latter).
  */
 export async function compileMDX(source: string): Promise<CompiledMDX | FailedMDX> {
-  try {
-    const { default: Content } = await evaluate(source, {
-      ...runtime,
-      remarkPlugins: [remarkGfm],
-      rehypePlugins: [rehypeSlug],
-    });
-    return { ok: true, Content };
-  } catch (error) {
-    return { ok: false, error };
-  }
+  return compileMDXCore<ComponentType<{ components?: MDXComponents }>>(source, runtime);
 }
 
 export interface MDXContentProps {
