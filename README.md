@@ -72,6 +72,16 @@ function Entry({ source }: { source: string }) {
 }
 ```
 
+`compiled.ok` only catches MDX _syntax_ errors. If the source references a JSX component you didn't pass in `components` (e.g. `<Callout>` without a `Callout` implementation), React throws while rendering `<Content>` — wrap it in the exported `MDXErrorBoundary` (React only, not React Native's non-DOM tree unless you supply an `errorTag`-equivalent fallback) to log it to the console and fail soft instead of crashing the page. `MDXContent` (the Next.js RSC helper above) already does this for you automatically.
+
+```tsx
+import { MDXErrorBoundary } from "@draftbase/renderer";
+
+<MDXErrorBoundary fallback={<Text>{source}</Text>}>
+  <Content components={{ p: Text, h1: Text /* ... */ }} />
+</MDXErrorBoundary>;
+```
+
 Extended markdown (tables, strikethrough, task lists, autolinks) is supported out of the box via `remark-gfm`.
 
 ## Astro
@@ -191,6 +201,27 @@ import { Callout, ImageBlock } from "@/components/content";
 ```
 
 Any standard markdown element (`h1`, `table`, `a`, ...) can also be overridden the same way, by key — **required** on non-DOM renderers like React Native, which have no intrinsic `div`/`p`/`a`/`img` tags.
+
+### Entry links
+
+The Draftbase editor can insert `<EntryLink id="...">Link text</EntryLink>` into rich text to link to another entry. It's a plain JSX component like any other — no special renderer support for the tag itself — so you must supply an `EntryLink` implementation the same way as `Callout`/`ImageBlock`. If `EntryLink` isn't supplied and the source contains one, rendering throws (same as any missing custom component).
+
+To route `id` correctly per content type, fetch the entry with `include=1` (via `@draftbase/sdk`) — the response includes an `entryLinks` map keyed by every `EntryLink` id found in that entry's richText fields, each with its `templateId`:
+
+```tsx
+const entry = await client.entries.get(entryId, undefined, 1);
+// entry.entryLinks = { "64f1a2b3c4d5e6f7a8b9c0d1": { id, templateId, title, status } }
+
+const ROUTE_BY_TEMPLATE: Record<string, string> = { blogPost: "/blog", product: "/products" };
+
+function EntryLink({ id, children }: { id: string; children: React.ReactNode }) {
+  const link = entry.entryLinks?.[id];
+  const base = ROUTE_BY_TEMPLATE[link?.templateId ?? ""] ?? "/entries";
+  return <a href={`${base}/${id}`}>{children}</a>;
+}
+
+<MDXContent source={entry.fields.body} components={{ EntryLink }} />;
+```
 
 ## Styling
 

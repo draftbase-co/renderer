@@ -3,6 +3,7 @@ import type { MDXComponents } from "mdx/types";
 import type { ComponentType, ElementType, ReactNode } from "react";
 import { compileMDXCore, type FailedMDX } from "./core.js";
 import { wrapperClassName } from "./wrapperClassName.js";
+import { MDXErrorBoundary } from "./MDXErrorBoundary.js";
 
 export interface CompiledMDX {
   ok: true;
@@ -71,7 +72,9 @@ export async function MDXContent({
   const { Content } = compiled;
   return (
     <Wrapper className={wrapperClass}>
-      <Content components={components} />
+      <MDXErrorBoundary fallback={<ErrorTag>{source}</ErrorTag>}>
+        <Content components={components} />
+      </MDXErrorBoundary>
     </Wrapper>
   );
 }
