@@ -17,8 +17,7 @@
   "homepage": "https://draftbase.co",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/draftbase-co/draftbase-monorepo.git",
-    "directory": "packages/renderer"
+    "url": "git+https://github.com/draftbase-co/renderer.git"
   },
   "publishConfig": {
     "access": "public"
