@@ -5,7 +5,7 @@
 **Framework-agnostic MDX renderer for [Draftbase](https://draftbase.co)** — the MDX-based headless CMS for React developers.
 
 [![npm](https://img.shields.io/npm/v/@draftbase/renderer)](https://www.npmjs.com/package/@draftbase/renderer)
-[![GitHub](https://img.shields.io/badge/GitHub-draftbase--monorepo-181717?logo=github)](https://github.com/draftbase-co/draftbase-monorepo/tree/main/packages/renderer)
+[![GitHub](https://img.shields.io/badge/GitHub-renderer-181717?logo=github)](https://github.com/draftbase-co/renderer)
 
 </div>
 
@@ -234,8 +234,8 @@ React (Next.js App Router/RSC, plain client React, React Native, Remix, Astro is
 ## Links
 
 - [npm](https://www.npmjs.com/package/@draftbase/renderer)
-- [Source (`packages/renderer`)](https://github.com/draftbase-co/draftbase-monorepo/tree/main/packages/renderer)
-- [Issues](https://github.com/draftbase-co/draftbase-monorepo/issues)
+- [Source](https://github.com/draftbase-co/renderer)
+- [Issues](https://github.com/draftbase-co/renderer/issues)
 - [`@draftbase/sdk`](https://www.npmjs.com/package/@draftbase/sdk) — fetches the content this package renders
 - [draftbase.co](https://draftbase.co) — product site
 - [Framework support](https://draftbase.co/frameworks) — per-framework rendering guide this README is based on
