@@ -25,6 +25,12 @@
   line-height: 1.25;
   margin: 1.5em 0 0.5em;
   color: inherit;
+  scroll-margin-top: 96px;
+}
+
+/* Highlights a footnote/citation anchor when the URL hash lands on it, e.g. #fn-1. */
+.db-content :target {
+  background: var(--accent-subtle, rgba(127, 127, 127, 0.15));
 }
 
 .db-content h1 {
