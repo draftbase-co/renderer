@@ -1,6 +1,23 @@
+<div align="center">
+
 # @draftbase/renderer
 
-Framework-agnostic MDX renderer for [Draftbase](https://draftbase.co), the MDX-based headless CMS for React developers. Takes an entry's MDX/markdown field and renders it into a real component tree (React or Vue) or a plain HTML string — no vendor lock-in to one frontend framework. `compileMDX` is a plain async function with no dependency on Next.js, a bundler, or a router.
+**Framework-agnostic MDX renderer for [Draftbase](https://draftbase.co)** — the MDX-based headless CMS for React developers.
+
+[![npm](https://img.shields.io/npm/v/@draftbase/renderer)](https://www.npmjs.com/package/@draftbase/renderer)
+[![GitHub](https://img.shields.io/badge/GitHub-draftbase--monorepo-181717?logo=github)](https://github.com/draftbase-co/draftbase-monorepo/tree/main/packages/renderer)
+
+</div>
+
+Takes an entry's MDX/markdown field and renders it into a real component tree (React or Vue) or a plain HTML string — no vendor lock-in to one frontend framework. `compileMDX` is a plain async function with no dependency on Next.js, a bundler, or a router.
+
+## 📦 Install
+
+```bash
+pnpm add @draftbase/renderer
+```
+
+## 🧭 Pick your entry point
 
 Every framework entry point exposes the **same API shape** — `compileMDX(source)` resolving to `{ ok: true, Content }` or `{ ok: false, error }` — so switching frameworks (or supporting several in one monorepo) means changing the import path, not the calling code:
 
@@ -12,13 +29,7 @@ Every framework entry point exposes the **same API shape** — `compileMDX(sourc
 
 Only import the entry point for the framework you use — each pulls in just that framework's peer dependency (React or Vue), never both, so an app using one never bundles code for the other.
 
-## Install
-
-```bash
-pnpm add @draftbase/renderer
-```
-
-## Next.js App Router
+## ⚛️ Next.js App Router
 
 ```tsx
 import { MDXContent } from "@draftbase/renderer";
@@ -219,3 +230,15 @@ Yes — `compileMDX`/`toHtml` produce standard semantic HTML (headings, lists, t
 
 **Which frontend frameworks are supported?**
 React (Next.js App Router/RSC, plain client React, React Native, Remix, Astro islands, Vite) and Vue (including Nuxt) get first-class component output. Any other framework (Svelte, Angular, Solid, plain HTML/email/RSS) can use `toHtml` to get a plain HTML string instead.
+
+## Links
+
+- [npm](https://www.npmjs.com/package/@draftbase/renderer)
+- [Source (`packages/renderer`)](https://github.com/draftbase-co/draftbase-monorepo/tree/main/packages/renderer)
+- [Issues](https://github.com/draftbase-co/draftbase-monorepo/issues)
+- [`@draftbase/sdk`](https://www.npmjs.com/package/@draftbase/sdk) — fetches the content this package renders
+- [draftbase.co](https://draftbase.co) — product site
+- [Framework support](https://draftbase.co/frameworks) — per-framework rendering guide this README is based on
+- [API reference](https://draftbase.co/docs/api-reference)
+- [Docs](https://draftbase.co/docs)
+- [Pricing](https://draftbase.co/pricing)
