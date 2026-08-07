@@ -6,6 +6,20 @@
 .db-content {
   line-height: 1.6;
   color: inherit;
+  overflow-wrap: break-word;
+}
+
+/* remark-gfm emits the footnotes label as .sr-only; define it so it stays hidden
+   without the consumer needing Tailwind or their own utility. */
+.db-content .sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 
 .db-content > :first-child {
@@ -29,7 +43,7 @@
 
 /* Highlights a footnote/citation anchor when the URL hash lands on it, e.g. #fn-1. */
 .db-content :target {
-  background: var(--accent-subtle, rgba(127, 127, 127, 0.15));
+  background: var(--db-target-bg, rgba(127, 127, 127, 0.15));
 }
 
 .db-content h1 {
@@ -174,9 +188,14 @@
   background: none;
 }
 
+/* display:block so wide tables scroll instead of overflowing the page on mobile;
+   costs full-bleed stretch for narrow tables. */
 .db-content table {
   border-collapse: collapse;
-  width: 100%;
+  display: block;
+  width: max-content;
+  max-width: 100%;
+  overflow-x: auto;
 }
 
 .db-content th,
