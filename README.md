@@ -233,6 +233,8 @@ function EntryLink({ id, children }: { id: string; children: React.ReactNode }) 
 - Extra classes: `<MDXContent source={...} className="prose" />`.
 - Custom wrapper/error element (e.g. React Native's `View`/`Text`): `<MDXContent source={...} wrapperTag={View} errorTag={Text} />`.
 
+If your site has a sticky header, set the anchor offset once on your own page — `html { scroll-padding-top: 5rem }` — so heading links don't land underneath it. The renderer deliberately ships no offset of its own, since `scroll-padding-top` and `scroll-margin-top` sum when both are set.
+
 ## Using with Claude Code / AI coding agents
 
 If you're an agent wiring this into a project, follow this checklist:

@@ -25,7 +25,6 @@
   line-height: 1.25;
   margin: 1.5em 0 0.5em;
   color: inherit;
-  scroll-margin-top: 96px;
 }
 
 /* Highlights a footnote/citation anchor when the URL hash lands on it, e.g. #fn-1. */
