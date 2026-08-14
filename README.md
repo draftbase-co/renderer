@@ -21,13 +21,16 @@ pnpm add @draftbase/renderer
 
 Every framework entry point exposes the **same API shape** — `compileMDX(source)` resolving to `{ ok: true, Content }` or `{ ok: false, error }` — so switching frameworks (or supporting several in one monorepo) means changing the import path, not the calling code:
 
-| Framework                                        | Import                                    | `Content` is a...                           |
-| ------------------------------------------------ | ----------------------------------------- | ------------------------------------------- |
-| React, Next.js, React Native, Remix, Astro, Vite | `@draftbase/renderer`                     | React component                             |
-| Vue                                              | `@draftbase/renderer/vue`                 | Vue component                               |
-| Anything else (Svelte, plain HTML, email, RSS)   | `toHtml` (below), from either entry point | — (returns an HTML string, not a component) |
+| Framework                                      | Import                                    | `Content` is a...                           |
+| ---------------------------------------------- | ----------------------------------------- | ------------------------------------------- |
+| React, Next.js, Remix, Astro, Vite             | `@draftbase/renderer`                     | React component                             |
+| React Native                                   | `@draftbase/renderer/react-native`        | React component                             |
+| Vue, Nuxt                                      | `@draftbase/renderer/vue`                 | Vue component                               |
+| Anything else (Svelte, plain HTML, email, RSS) | `toHtml` (below), from either entry point | — (returns an HTML string, not a component) |
 
-Only import the entry point for the framework you use — each pulls in just that framework's peer dependency (React or Vue), never both, so an app using one never bundles code for the other.
+Only import the entry point for the framework you use — each pulls in just that framework's peer dependency (React or Vue), never both, so an app using one never bundles code for the other. The `/react-native` entry point never imports the `react-native` package itself (see its section below), so a Vue or web-only React project never pulls it in either.
+
+Every entry point renders standard markdown (`p`, `h1`-`h6`, tables, lists, links, ...) **with zero component mapping** — web React/Vue use real DOM elements automatically, and the React Native entry ships default Text/View/Image mappings (see below). You only ever need to pass `components` for content-specific custom JSX tags (e.g. `<Callout>`) that have no sensible default — and even `EntryLink` (the CMS's entry-link tag) has a default (`<a href="/entries/{id}">`) unless you override it.
 
 ## ⚛️ Next.js App Router
 
@@ -44,14 +47,51 @@ export default async function Page() {
 
 `MDXContent` is an `async` Server Component — it only works where React can await inside a component body (Next.js RSC).
 
-## Other React (client-side web, React Native, Remix, ...)
+## Other React (client-side web, Remix, ...)
 
 Call `compileMDX` yourself from a loader/effect and render the result — no RSC required:
 
 ```tsx
 import { useEffect, useState } from "react";
 import { compileMDX } from "@draftbase/renderer";
+
+function Entry({ source }: { source: string }) {
+  const [compiled, setCompiled] = useState<Awaited<ReturnType<typeof compileMDX>>>();
+
+  useEffect(() => {
+    compileMDX(source).then(setCompiled);
+  }, [source]);
+
+  if (!compiled) return null;
+  if (!compiled.ok) return <p>{source}</p>;
+
+  const { Content } = compiled;
+  return <Content />; // standard markdown renders as real DOM elements, no components map needed
+}
+```
+
+`compiled.ok` only catches MDX _syntax_ errors. If the source references a custom JSX component you didn't pass in `components` (e.g. `<Callout>` without a `Callout` implementation), React throws while rendering `<Content>` — wrap it in the exported `MDXErrorBoundary` to log it to the console and fail soft instead of crashing the page. `MDXContent` (the Next.js RSC helper above) already does this for you automatically.
+
+```tsx
+import { MDXErrorBoundary } from "@draftbase/renderer";
+
+<MDXErrorBoundary fallback={<p>{source}</p>}>
+  <Content />
+</MDXErrorBoundary>;
+```
+
+Extended markdown (tables, strikethrough, task lists, autolinks) is supported out of the box via `remark-gfm`.
+
+## React Native
+
+RN has no intrinsic host tags for `p`/`h1`/`a`/etc the way web React has real DOM elements, so it can't render standard markdown for free the way the web entry point does. Instead of mapping every tag yourself, wire up RN's three core primitives **once** via `@draftbase/renderer/react-native` and every markdown element — including a styled default `EntryLink` — works out of the box from there:
+
+```tsx
+import { useEffect, useState } from "react";
 import { View, Text } from "react-native";
+import { createReactNativeRenderer } from "@draftbase/renderer/react-native";
+
+const { compileMDX } = createReactNativeRenderer({ Text, View, Image });
 
 function Entry({ source }: { source: string }) {
   const [compiled, setCompiled] = useState<Awaited<ReturnType<typeof compileMDX>>>();
@@ -66,23 +106,25 @@ function Entry({ source }: { source: string }) {
   const { Content } = compiled;
   return (
     <View>
-      <Content components={{ p: Text, h1: Text /* ... */ }} />
+      <Content /> {/* p, h1-h6, a, table, EntryLink, ... all render already-styled */}
     </View>
   );
 }
 ```
 
-`compiled.ok` only catches MDX _syntax_ errors. If the source references a JSX component you didn't pass in `components` (e.g. `<Callout>` without a `Callout` implementation), React throws while rendering `<Content>` — wrap it in the exported `MDXErrorBoundary` (React only, not React Native's non-DOM tree unless you supply an `errorTag`-equivalent fallback) to log it to the console and fail soft instead of crashing the page. `MDXContent` (the Next.js RSC helper above) already does this for you automatically.
+Default styling mirrors the web look (heading scale, blue underlined links, monospace code, table borders and row layout, ...). Override or disable it via a second argument:
 
 ```tsx
-import { MDXErrorBoundary } from "@draftbase/renderer";
+// override specific tags
+createReactNativeRenderer({ Text, View, Image }, { styles: { h1: { fontSize: 32 } } });
 
-<MDXErrorBoundary fallback={<Text>{source}</Text>}>
-  <Content components={{ p: Text, h1: Text /* ... */ }} />
-</MDXErrorBoundary>;
+// drop all default styling
+createReactNativeRenderer({ Text, View, Image }, { unstyled: true });
 ```
 
-Extended markdown (tables, strikethrough, task lists, autolinks) is supported out of the box via `remark-gfm`.
+`components` on the returned `Content` still works the same way, per-tag, for anything you want to swap out entirely (e.g. a tappable `EntryLink` that actually navigates — the default renders a plain styled `Text`, since navigation is app-specific).
+
+This package never imports the `react-native` package itself — you pass its `Text`/`View`/`Image` in, so nothing RN-specific ends up in a web or Vue bundle.
 
 ## Astro
 

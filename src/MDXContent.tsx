@@ -1,7 +1,7 @@
 import * as runtime from "react/jsx-runtime";
 import type { MDXComponents } from "mdx/types";
 import type { ComponentType, ElementType, ReactNode } from "react";
-import { compileMDXCore, type FailedMDX } from "./core.js";
+import { compileMDXCore, makeDefaultEntryLink, type FailedMDX } from "./core.js";
 import { wrapperClassName } from "./wrapperClassName.js";
 import { MDXErrorBoundary } from "./MDXErrorBoundary.js";
 
@@ -12,13 +12,21 @@ export interface CompiledMDX {
 
 export type { FailedMDX };
 
+const defaultComponents = { EntryLink: makeDefaultEntryLink(runtime) };
+
 /**
  * Compiles raw MDX/markdown into a renderable React component — no DOM assumptions,
- * safe to call from a React Native loader, a client-side effect, or a Next.js Server
- * Component (the `MDXContent` component below does the latter).
+ * safe to call from a client-side effect or a Next.js Server Component (the
+ * `MDXContent` component below does the latter). Standard markdown elements (`p`,
+ * `h1`, `table`, ...) render via real DOM tags with zero setup; only a JSX component
+ * with no built-in default (e.g. `<Callout>`) needs `components`.
  */
 export async function compileMDX(source: string): Promise<CompiledMDX | FailedMDX> {
-  return compileMDXCore<ComponentType<{ components?: MDXComponents }>>(source, runtime);
+  return compileMDXCore<ComponentType<{ components?: MDXComponents }>>(
+    source,
+    runtime,
+    defaultComponents,
+  );
 }
 
 export interface MDXContentProps {
