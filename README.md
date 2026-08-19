@@ -232,6 +232,31 @@ import { toHtml } from "@draftbase/renderer";
 const html = await toHtml(entry.fields.body);
 ```
 
+By default, custom tags in the source (`<Callout>`, `<EntryLink>`, ...) pass through as literal HTML — `toHtml` produces a plain string, not a React tree, so there's no component tree to substitute into. Pass `components` to render one to an HTML string instead, keyed by tag name (case-insensitive):
+
+```ts
+const html = await toHtml(entry.fields.body, {
+  components: {
+    Callout: (props, childrenHtml) => `<div class="callout-${props.type}">${childrenHtml}</div>`,
+  },
+  externalLinks: true, // adds target="_blank" rel="noopener noreferrer" to off-site <a> tags
+});
+```
+
+Unlike a React `components` map, each prop always arrives as a string — real HTML parsing, not JSX evaluation, so `count="3"` is `"3"`, never `3`. `childrenHtml` is the tag's contents already rendered to HTML, with any nested custom tags resolved first.
+
+`EntryLink` gets a default (`<a href="/entries/{id}">`) the moment `components` is passed at all, same as the React renderer's default — override it the same way as any other tag:
+
+```ts
+const html = await toHtml(entry.fields.body, {
+  components: {
+    EntryLink: (props, childrenHtml) => `<a href="/blog/${props.id}">${childrenHtml}</a>`,
+  },
+});
+```
+
+Omit `components` entirely and every custom tag, `EntryLink` included, stays literal HTML (previous behavior); omit `externalLinks` and links are left as-is.
+
 ## Custom components
 
 Content can invoke JSX components by name inside the MDX source (e.g. `<Callout type="warning">...</Callout>`). Pass the implementations:
