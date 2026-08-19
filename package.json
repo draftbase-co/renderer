@@ -1,6 +1,6 @@
 {
   "name": "@draftbase/renderer",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "Framework-agnostic MDX renderer for Draftbase content (React, Next.js RSC, React Native, Astro, Vite, Vue)",
   "keywords": [
     "draftbase",
