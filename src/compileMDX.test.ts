@@ -10,10 +10,8 @@ interface Element {
   props: Record<string, unknown>;
 }
 
-/** compileMDX's Content is wrapped to merge in default components (see core.ts) —
- * unwrap by directly invoking each function-typed element until reaching real output,
- * same "call it like a plain function" style as the rest of these tests (no renderer
- * mounted). */
+/** Content is wrapped to merge in default components (see core.ts) — unwrap by invoking each
+ * function-typed element until reaching real output (no renderer mounted). */
 function resolve(element: Element): Element {
   return typeof element.type === "function"
     ? resolve((element.type as (props: object) => Element)(element.props))

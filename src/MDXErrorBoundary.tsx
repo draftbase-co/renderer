@@ -11,10 +11,8 @@ interface MDXErrorBoundaryState {
   hasError: boolean;
 }
 
-// Catches render-time errors from compiled MDX content — most commonly a JSX component
-// referenced in the source (e.g. `<Callout>`, `<EntryLink>`) that wasn't supplied in
-// `components`. Without this, that throws "Element type is invalid" and crashes the whole
-// page instead of just the content block.
+// Catches render-time errors from compiled MDX content — most commonly a JSX component referenced in the
+// source but missing from `components`, which otherwise throws and crashes the whole page.
 export class MDXErrorBoundary extends Component<MDXErrorBoundaryProps, MDXErrorBoundaryState> {
   state: MDXErrorBoundaryState = { hasError: false };
 

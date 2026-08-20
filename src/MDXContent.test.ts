@@ -7,9 +7,7 @@ interface Element {
   props: Record<string, unknown>;
 }
 
-// Smoke test for the Next.js App Router / RSC entry point — MDXContent is an async
-// Server Component; call it directly (as React's RSC runtime would) and inspect the
-// element tree it returns, same style as compileMDX.test.ts.
+// MDXContent is an async Server Component; call it directly (as React's RSC runtime would) and inspect the returned element tree.
 test("MDXContent wraps compiled MDX in the styled wrapper element", async () => {
   const element = (await MDXContent({ source: "# Hello" })) as unknown as Element;
   assert.equal(element.type, "div");

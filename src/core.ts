@@ -16,14 +16,8 @@ export interface FailedMDX {
 }
 
 /**
- * Shared MDX-to-component evaluation. Parameterized by JSX runtime (React's
- * `react/jsx-runtime`, a Vue `h()`-based shim, ...) so each framework entry point
- * supplies its own without duplicating the remark/rehype pipeline.
- *
- * `defaultComponents`, when given, are merged underneath whatever the caller passes
- * as `Content`'s own `components` prop (caller always wins per-tag) — this is what
- * lets a framework entry point ship working defaults (e.g. a default `EntryLink`,
- * or React Native's Text/View mapping) without requiring a mapping up front.
+ * Shared MDX-to-component evaluation, parameterized by JSX runtime so each framework entry point avoids duplicating
+ * the remark/rehype pipeline. `defaultComponents`, when given, are merged underneath the caller's own `components` (caller always wins per-tag).
  */
 export async function compileMDXCore<TComponent>(
   source: string,
@@ -68,9 +62,8 @@ function withDefaultComponents(
   };
 }
 
-/** Default `EntryLink` for a given JSX runtime — renders `<a href="/entries/{id}">`.
- * Covers the common case (a plain link to the entry's default route); apps that
- * route entries differently still override it by passing `components.EntryLink`. */
+/** Default `EntryLink` for a given JSX runtime — renders `<a href="/entries/{id}">`; apps that
+ * route entries differently override it by passing `components.EntryLink`. */
 export function makeDefaultEntryLink(jsxRuntime: JsxRuntime) {
   return function EntryLink({ id, children }: { id?: string; children?: unknown }) {
     return jsxRuntime.jsx!("a", { href: id ? `/entries/${id}` : undefined, children } as never);

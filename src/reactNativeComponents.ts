@@ -18,12 +18,8 @@ export interface ReactNativeStyleOptions {
 }
 
 /**
- * Default MDX `components` map for React Native, built from its Text/View/Image
- * primitives. RN has no intrinsic host tags for `p`/`h1`/`a`/etc the way web React
- * does, so every standard markdown element needs an explicit mapping — this covers
- * the common ones, styled to match the web default look (heading scale, link color,
- * table layout, ...), so a project only wires up the three RN primitives once (via
- * `createReactNativeRenderer`) instead of mapping and styling every tag itself.
+ * Default MDX `components` map for React Native, built from its Text/View/Image primitives. RN has no intrinsic
+ * host tags for `p`/`h1`/`a`/etc the way web React does, so every standard markdown element needs an explicit mapping.
  */
 export function buildReactNativeComponents(
   { Text, View, Image }: ReactNativePrimitives,

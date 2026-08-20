@@ -2,9 +2,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { buildReactNativeComponents } from "./reactNativeComponents.js";
 
-// Stand-ins for react-native's Text/View/Image — this package doesn't depend on
-// react-native itself (it only resolves inside Metro, not plain Node), so the mapping
-// logic is tested against fakes with the same shape.
+// Stand-ins for react-native's Text/View/Image — this package doesn't depend on react-native itself
+// (it only resolves inside Metro, not plain Node), so the mapping is tested against fakes with the same shape.
 const Text = () => null;
 const View = () => null;
 const Image = () => null;

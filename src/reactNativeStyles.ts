@@ -1,6 +1,5 @@
-/** Default per-tag style objects for the React Native preset — mirrors `styles.css`'s
- * web defaults (heading scale, link color/underline, code/blockquote treatment, list
- * spacing) so RN output looks like the web default instead of unstyled plain text. */
+/** Default per-tag style objects for the React Native preset — mirrors `styles.css`'s web defaults
+ * so RN output looks like the web default instead of unstyled plain text. */
 export const defaultReactNativeStyles: Record<string, Record<string, unknown>> = {
   p: { marginBottom: 12, lineHeight: 22 },
   h1: { fontSize: 28, fontWeight: "700", marginTop: 20, marginBottom: 10 },

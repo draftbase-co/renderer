@@ -13,9 +13,8 @@ const View = () => null;
 const Image = () => null;
 const LEAVES: unknown[] = [Text, View, Image];
 
-/** Unwraps nested function-component elements (the default-components wrapper, the
- * per-tag style wrapper, ...) down to the RN primitive actually used, without calling
- * into the primitive itself (Text/View/Image are opaque leaves here, not JSX). */
+/** Unwraps nested function-component elements down to the RN primitive actually used,
+ * without calling into it (Text/View/Image are opaque leaves here, not JSX). */
 function resolve(element: Element): Element {
   return typeof element.type === "function" && !LEAVES.includes(element.type)
     ? resolve((element.type as (props: object) => Element)(element.props))

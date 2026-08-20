@@ -15,11 +15,8 @@ export type { FailedMDX };
 const defaultComponents = { EntryLink: makeDefaultEntryLink(runtime) };
 
 /**
- * Compiles raw MDX/markdown into a renderable React component — no DOM assumptions,
- * safe to call from a client-side effect or a Next.js Server Component (the
- * `MDXContent` component below does the latter). Standard markdown elements (`p`,
- * `h1`, `table`, ...) render via real DOM tags with zero setup; only a JSX component
- * with no built-in default (e.g. `<Callout>`) needs `components`.
+ * Compiles raw MDX/markdown into a renderable React component — no DOM assumptions, safe for client effects or RSC.
+ * Standard markdown elements render via real DOM tags with zero setup; only a JSX component with no built-in default needs `components`.
  */
 export async function compileMDX(source: string): Promise<CompiledMDX | FailedMDX> {
   return compileMDXCore<ComponentType<{ components?: MDXComponents }>>(
@@ -32,9 +29,8 @@ export async function compileMDX(source: string): Promise<CompiledMDX | FailedMD
 export interface MDXContentProps {
   /** Raw MDX/markdown string, e.g. an entry's rich text field. */
   source: string;
-  /** Custom components available by name inside the MDX source (e.g. `<Callout>`), and/or
-   * overrides for standard markdown elements (`p`, `h1`, `a`, `img`, ...) — required on
-   * non-DOM renderers such as React Native, which have no intrinsic `div`/`p`/`a` tags. */
+  /** Custom components available by name inside the MDX source, and/or overrides for standard markdown elements —
+   * required on non-DOM renderers such as React Native, which have no intrinsic `div`/`p`/`a` tags. */
   components?: MDXComponents;
   /** Skip the default `db-content` styling class. */
   unstyled?: boolean;
@@ -49,9 +45,8 @@ export interface MDXContentProps {
 }
 
 /**
- * Next.js Server Component wrapper around {@link compileMDX}. For non-RSC React (client-side
- * web, React Native, Remix, ...), call `compileMDX` directly from your own data loader/effect
- * and render `Content` yourself — `await` inside a component body only works as an RSC.
+ * Next.js Server Component wrapper around {@link compileMDX}. For non-RSC React, call `compileMDX` directly instead —
+ * `await` inside a component body only works as an RSC.
  */
 export async function MDXContent({
   source,

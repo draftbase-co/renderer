@@ -21,8 +21,7 @@ export type ToHtmlComponent = (props: Record<string, string>, childrenHtml: stri
 
 export interface ToHtmlOptions {
   /** Renders custom tags (e.g. `<Callout>`, `<EntryLink id>`) by tag name, case-insensitive.
-   * `EntryLink` defaults to `<a href="/entries/{id}">` unless overridden. Omit to leave every
-   * custom tag as literal HTML. */
+   * `EntryLink` defaults to `<a href="/entries/{id}">` unless overridden. */
   components?: Record<string, ToHtmlComponent>;
   /** Adds `target`/`rel` to links whose `href` has a URL scheme (`https:`, `mailto:`, ...).
    * `true` uses `target="_blank" rel="noopener noreferrer"`; pass an object to override. */
