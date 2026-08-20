@@ -35,6 +35,25 @@ export function buildReactNativeComponents(
       runtime.jsx(Base, { ...props, style: props.style ? [style, props.style] : style } as never);
   }
 
+  // MDX bakes the source's literal formatting whitespace ("\n" between block elements) into the
+  // compiled JSX as string children, even though structurally these tags never hold real text.
+  // React Native's Text/View don't tolerate a bare string child of View, so container tags need it
+  // stripped — Text-mapped tags (p, li, td, ...) keep it, since inline whitespace there is real content.
+  function stripWhitespaceChildren(children: ReactNode): ReactNode {
+    if (Array.isArray(children))
+      return children.filter((child) => typeof child !== "string" || child.trim() !== "");
+    return typeof children === "string" && children.trim() === "" ? undefined : children;
+  }
+
+  function container<TProps extends { children?: ReactNode; style?: unknown }>(
+    Base: ComponentType<TProps>,
+    tag: string,
+  ) {
+    const Styled = styled(Base, tag);
+    return (props: TProps) =>
+      runtime.jsx(Styled, { ...props, children: stripWhitespaceChildren(props.children) } as never);
+  }
+
   const Img = ({ src, alt }: { src?: string; alt?: string }) =>
     runtime.jsx(Image, {
       source: { uri: src },
@@ -63,9 +82,9 @@ export function buildReactNativeComponents(
     li: styled(Text, "li"),
     th: styled(Text, "th"),
     td: styled(Text, "td"),
-    ul: styled(View, "ul"),
-    ol: styled(View, "ol"),
-    blockquote: styled(View, "blockquote"),
+    ul: container(View, "ul"),
+    ol: container(View, "ol"),
+    blockquote: container(View, "blockquote"),
     hr: styled(View, "hr"),
     table: styled(View, "table"),
     thead: View,
