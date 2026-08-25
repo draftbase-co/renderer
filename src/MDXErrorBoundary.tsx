@@ -5,6 +5,7 @@ import { Component, type ReactNode } from "react";
 interface MDXErrorBoundaryProps {
   children: ReactNode;
   fallback: ReactNode;
+  onError?: (error: unknown) => void;
 }
 
 interface MDXErrorBoundaryState {
@@ -22,6 +23,7 @@ export class MDXErrorBoundary extends Component<MDXErrorBoundaryProps, MDXErrorB
 
   componentDidCatch(error: unknown) {
     console.error("MDX content failed to render", error);
+    this.props.onError?.(error);
   }
 
   render() {

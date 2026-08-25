@@ -4,6 +4,7 @@ import type { ComponentType, ElementType, ReactNode } from "react";
 import { compileMDXCore, makeDefaultEntryLink, type FailedMDX } from "./core.js";
 import { wrapperClassName } from "./wrapperClassName.js";
 import { MDXErrorBoundary } from "./MDXErrorBoundary.js";
+import { CSS_TEXT } from "./cssText.js";
 
 export interface CompiledMDX {
   ok: true;
@@ -32,7 +33,7 @@ export interface MDXContentProps {
   /** Custom components available by name inside the MDX source, and/or overrides for standard markdown elements —
    * required on non-DOM renderers such as React Native, which have no intrinsic `div`/`p`/`a` tags. */
   components?: MDXComponents;
-  /** Skip the default `db-content` styling class. */
+  /** Skip the default `db-content` styling class and its inlined styles. */
   unstyled?: boolean;
   /** Extra class name(s) merged onto the wrapper element. */
   className?: string;
@@ -42,6 +43,10 @@ export interface MDXContentProps {
   /** Element/component used to render the fallback plain-text output when `source` fails to
    * compile as MDX. Defaults to `"p"`; pass React Native's `Text`. */
   errorTag?: ElementType;
+  /** Called (in addition to `console.error`) when `source` fails to compile, or a component
+   * throws while rendering. Either way the fallback plain-text output still renders instead of
+   * crashing. */
+  onError?: (error: unknown) => void;
 }
 
 /**
@@ -55,29 +60,44 @@ export async function MDXContent({
   className,
   wrapperTag = "div",
   errorTag = "p",
+  onError,
 }: MDXContentProps): Promise<ReactNode> {
   const Wrapper = wrapperTag;
   const ErrorTag = errorTag;
   const wrapperClass = wrapperClassName(unstyled, className);
+  // `href` + `precedence` make React DOM treat this as a de-duplicated, hoisted stylesheet
+  // resource (React 19+) instead of a plain inline tag repeated per render.
+  const styles = unstyled ? null : (
+    <style href="db-content-styles" precedence="default">
+      {CSS_TEXT}
+    </style>
+  );
   const compiled = await compileMDX(source);
 
   if (!compiled.ok) {
     // Source isn't valid MDX/JSX (e.g. stray `<`/`{` in prose) — fail soft instead
     // of crashing the page; render it as plain text so the copy still shows.
     console.error("MDX compile failed, rendering as plain text", compiled.error);
+    onError?.(compiled.error);
     return (
-      <Wrapper className={wrapperClass}>
-        <ErrorTag>{source}</ErrorTag>
-      </Wrapper>
+      <>
+        {styles}
+        <Wrapper className={wrapperClass}>
+          <ErrorTag>{source}</ErrorTag>
+        </Wrapper>
+      </>
     );
   }
 
   const { Content } = compiled;
   return (
-    <Wrapper className={wrapperClass}>
-      <MDXErrorBoundary fallback={<ErrorTag>{source}</ErrorTag>}>
-        <Content components={components} />
-      </MDXErrorBoundary>
-    </Wrapper>
+    <>
+      {styles}
+      <Wrapper className={wrapperClass}>
+        <MDXErrorBoundary fallback={<ErrorTag>{source}</ErrorTag>} onError={onError}>
+          <Content components={components} />
+        </MDXErrorBoundary>
+      </Wrapper>
+    </>
   );
 }

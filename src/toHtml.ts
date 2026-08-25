@@ -6,6 +6,8 @@ import rehypeRaw from "rehype-raw";
 import rehypeSlug from "rehype-slug";
 import rehypeStringify from "rehype-stringify";
 import { toHtml as hastToHtml } from "hast-util-to-html";
+import { wrapperClassName } from "./wrapperClassName.js";
+import { CSS_TEXT } from "./cssText.js";
 
 interface HastElement {
   type: string;
@@ -26,6 +28,14 @@ export interface ToHtmlOptions {
   /** Adds `target`/`rel` to links whose `href` has a URL scheme (`https:`, `mailto:`, ...).
    * `true` uses `target="_blank" rel="noopener noreferrer"`; pass an object to override. */
   externalLinks?: boolean | { target?: string; rel?: string };
+  /** Skip wrapping the output in a `db-content`-classed `<div>` and the inlined default
+   * styles (see below). Same semantics as `MDXContent`'s `unstyled` prop. */
+  unstyled?: boolean;
+  /** Extra class name(s) merged onto the wrapper `<div>`. */
+  className?: string;
+  /** Called (in addition to `console.error`) when a custom component (from `components`) throws
+   * while rendering. The tag is left as literal HTML instead of failing the whole render. */
+  onError?: (error: unknown, tagName: string) => void;
 }
 
 const SCHEME_HREF = /^[a-z][a-z0-9+.-]*:/i;
@@ -56,16 +66,24 @@ function rehypeDraftbase(options: ToHtmlOptions) {
       for (const child of node.children ?? []) transform(child);
       if (node.type !== "element" || !node.tagName) return;
 
-      const render = componentsByTag?.get(node.tagName);
+      const tagName = node.tagName;
+      const render = componentsByTag?.get(tagName);
       if (render) {
-        const childrenHtml = hastToHtml({ type: "root", children: node.children ?? [] } as never, {
-          allowDangerousHtml: true,
-        });
-        node.value = render(hastPropsToStrings(node.properties), childrenHtml);
-        node.type = "raw";
-        node.tagName = undefined;
-        node.properties = undefined;
-        node.children = undefined;
+        try {
+          const childrenHtml = hastToHtml(
+            { type: "root", children: node.children ?? [] } as never,
+            { allowDangerousHtml: true },
+          );
+          node.value = render(hastPropsToStrings(node.properties), childrenHtml);
+          node.type = "raw";
+          node.tagName = undefined;
+          node.properties = undefined;
+          node.children = undefined;
+        } catch (error) {
+          // Leave the tag as literal HTML instead of failing the whole render.
+          console.error(`Draftbase component "${tagName}" failed to render`, error);
+          options.onError?.(error, tagName);
+        }
         return;
       }
 
@@ -84,8 +102,12 @@ function rehypeDraftbase(options: ToHtmlOptions) {
   };
 }
 
-/** Renders MDX/markdown to a static HTML string — no React, no mounted tree. Use
- * `compileMDX`/`MDXContent` instead when you need a React tree. */
+/** Renders MDX/markdown to a static, self-contained HTML string: pre-wrapped in
+ * `<div class="db-content">` with the default styles inlined as a `<style>` tag ahead of it —
+ * no separate `styles.css` import needed. Calling `toHtml` more than once on the same page
+ * repeats that `<style>` tag (harmless, just redundant bytes); pass `unstyled: true` and load
+ * `@draftbase/renderer/styles.css` yourself once if that matters. No React, no mounted tree —
+ * use `compileMDX`/`MDXContent` instead when you need a React tree. */
 export async function toHtml(source: string, options: ToHtmlOptions = {}): Promise<string> {
   const needsRawParse = Boolean(options.components);
   const processor = unified()
@@ -99,5 +121,11 @@ export async function toHtml(source: string, options: ToHtmlOptions = {}): Promi
     .use(rehypeStringify, { allowDangerousHtml: true });
 
   const file = await processor.process(source);
-  return String(file);
+  const html = String(file);
+
+  const wrapperClass = wrapperClassName(options.unstyled, options.className);
+  if (!wrapperClass) return html;
+  return options.unstyled
+    ? `<div class="${wrapperClass}">${html}</div>`
+    : `<style>${CSS_TEXT}</style><div class="${wrapperClass}">${html}</div>`;
 }

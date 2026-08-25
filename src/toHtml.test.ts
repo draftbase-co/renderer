@@ -1,11 +1,27 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { toHtml } from "./toHtml.js";
+import { CSS_TEXT } from "./cssText.js";
 
 test("renders markdown to html", async () => {
   const html = await toHtml("# Title\n\nSome **bold** text.");
   assert.match(html, /<h1 id="title">Title<\/h1>/);
   assert.match(html, /<strong>bold<\/strong>/);
+});
+
+test("wraps output in a db-content div with inlined styles by default", async () => {
+  const html = await toHtml("hi");
+  assert.equal(html, `<style>${CSS_TEXT}</style><div class="db-content"><p>hi</p></div>`);
+});
+
+test("unstyled skips the wrapper div and the inlined styles", async () => {
+  const html = await toHtml("hi", { unstyled: true });
+  assert.equal(html, "<p>hi</p>");
+});
+
+test("className merges onto the wrapper div, styles still inlined", async () => {
+  const html = await toHtml("hi", { className: "prose" });
+  assert.equal(html, `<style>${CSS_TEXT}</style><div class="db-content prose"><p>hi</p></div>`);
 });
 
 test("supports gfm tables", async () => {
@@ -49,6 +65,22 @@ test("components resolves nested custom tags before serializing the parent's chi
     },
   });
   assert.match(html, /<div><a href="\/entries\/abc">Post<\/a><\/div>/);
+});
+
+test("a component that throws leaves the tag as literal HTML and calls onError", async () => {
+  const errors: Array<[unknown, string]> = [];
+  const html = await toHtml('<Callout type="warning">Careful</Callout>', {
+    components: {
+      Callout: () => {
+        throw new Error("boom");
+      },
+    },
+    onError: (error, tagName) => errors.push([error, tagName]),
+  });
+  assert.match(html, /<callout type="warning">Careful<\/callout>/);
+  assert.equal(errors.length, 1);
+  assert.equal((errors[0][0] as Error).message, "boom");
+  assert.equal(errors[0][1], "callout");
 });
 
 test("adds target/rel to external links when externalLinks is true", async () => {

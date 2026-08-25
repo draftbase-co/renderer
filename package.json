@@ -1,6 +1,6 @@
 {
   "name": "@draftbase/renderer",
-  "version": "0.4.3",
+  "version": "0.5.0",
   "description": "Framework-agnostic MDX renderer for Draftbase content (React, Next.js RSC, React Native, Astro, Vite, Vue)",
   "keywords": [
     "draftbase",
@@ -40,8 +40,8 @@
     "README.md"
   ],
   "scripts": {
-    "build": "tsc -p tsconfig.json && cp src/styles.css dist/styles.css",
-    "lint": "tsc --noEmit",
+    "build": "node scripts/generate-css-text.mjs && tsc -p tsconfig.json && cp src/styles.css dist/styles.css",
+    "lint": "node scripts/generate-css-text.mjs && tsc --noEmit",
     "test": "node --test dist/wrapperClassName.test.js dist/toHtml.test.js dist/compileMDX.test.js dist/reactNativeComponents.test.js dist/reactNative.test.js dist/MDXContent.test.js"
   },
   "peerDependencies": {

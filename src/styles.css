@@ -1,12 +1,27 @@
 /* Slim default typography for Draftbase MDX content.
-   Opt-in: import "@draftbase/react/styles.css".
-   Disable per-render: <MDXContent unstyled />.
-   Override: target ".db-content" with higher-specificity or later-loaded rules. */
+   Opt-in: import "@draftbase/renderer/styles.css".
+   Disable per-render: <MDXContent unstyled /> or toHtml(source, { unstyled: true }).
+   Theme via custom properties: --db-heading-color, --db-link-color, --db-accent-border,
+   --db-target-bg. Override further: target ".db-content" with higher-specificity or
+   later-loaded rules. */
 
 .db-content {
   line-height: 1.6;
   color: inherit;
   overflow-wrap: break-word;
+}
+
+.db-content h1,
+.db-content h2,
+.db-content h3,
+.db-content h4,
+.db-content h5,
+.db-content h6 {
+  color: var(--db-heading-color, inherit);
+}
+
+.db-content a {
+  color: var(--db-link-color, inherit);
 }
 
 /* remark-gfm emits the footnotes label as .sr-only; define it so it stays hidden
@@ -38,7 +53,6 @@
   font-weight: 600;
   line-height: 1.25;
   margin: 1.5em 0 0.5em;
-  color: inherit;
 }
 
 /* Highlights a footnote/citation anchor when the URL hash lands on it, e.g. #fn-1. */
@@ -165,7 +179,7 @@
 .db-content blockquote {
   margin-left: 0;
   padding-left: 1em;
-  border-left: 3px solid currentColor;
+  border-left: 3px solid var(--db-accent-border, currentColor);
   opacity: 0.85;
 }
 
@@ -217,7 +231,6 @@
 }
 
 .db-content a {
-  color: inherit;
   text-decoration: underline;
   text-underline-offset: 2px;
 }
