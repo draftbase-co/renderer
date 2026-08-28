@@ -1,7 +1,7 @@
 import * as runtime from "react/jsx-runtime";
 import type { MDXComponents } from "mdx/types";
 import type { ComponentType, ElementType, ReactNode } from "react";
-import { compileMDXCore, makeDefaultEntryLink, type FailedMDX } from "./core.js";
+import { compileMDXCore, makeDefaultEntryLink, makeDefaultImage, type FailedMDX } from "./core.js";
 import { wrapperClassName } from "./wrapperClassName.js";
 import { MDXErrorBoundary } from "./MDXErrorBoundary.js";
 import { CSS_TEXT } from "./cssText.js";
@@ -13,7 +13,10 @@ export interface CompiledMDX {
 
 export type { FailedMDX };
 
-const defaultComponents = { EntryLink: makeDefaultEntryLink(runtime) };
+const defaultComponents = {
+  EntryLink: makeDefaultEntryLink(runtime),
+  img: makeDefaultImage(runtime),
+};
 
 /**
  * Compiles raw MDX/markdown into a renderable React component — no DOM assumptions, safe for client effects or RSC.

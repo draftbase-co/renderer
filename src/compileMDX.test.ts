@@ -52,6 +52,38 @@ test("vue EntryLink renders as a link to /entries/{id} with no components map su
   assert.equal(link.props.href, "/entries/abc123");
 });
 
+// A standalone `![]()` compiles to a <p><img/></p> — resolve the paragraph, then its one child.
+function imgFrom(paragraph: Element): Element {
+  const child = paragraph.props.children as Element | Element[];
+  return resolve(Array.isArray(child) ? (child[0] as Element) : child);
+}
+
+test("react img gets lazy-loading defaults with no components map supplied", async () => {
+  const result = await compileReactMDX("![alt text](https://example.com/a.png)");
+  assert.equal(result.ok, true);
+  if (!result.ok) return;
+  const paragraph = resolve((result.Content as unknown as (props: object) => Element)({}));
+  const img = imgFrom(paragraph);
+  assert.equal(img.type, "img");
+  assert.equal(img.props.loading, "lazy");
+  assert.equal(img.props.decoding, "async");
+  assert.equal(img.props.src, "https://example.com/a.png");
+});
+
+test("a supplied img override still wins over the default", async () => {
+  const result = await compileReactMDX("![alt text](https://example.com/a.png)");
+  assert.equal(result.ok, true);
+  if (!result.ok) return;
+  const CustomImage = () => ({ type: "custom-image", props: {} });
+  const paragraph = resolve(
+    (result.Content as unknown as (props: { components: object }) => Element)({
+      components: { img: CustomImage },
+    }),
+  );
+  const img = imgFrom(paragraph);
+  assert.equal(img.type, "custom-image");
+});
+
 test("a supplied EntryLink override still wins over the default", async () => {
   const result = await compileReactMDX('<EntryLink id="abc123">Read more</EntryLink>');
   assert.equal(result.ok, true);

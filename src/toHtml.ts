@@ -87,6 +87,11 @@ function rehypeDraftbase(options: ToHtmlOptions) {
         return;
       }
 
+      if (node.tagName === "img") {
+        node.properties = { loading: "lazy", decoding: "async", ...node.properties };
+        return;
+      }
+
       if (node.tagName === "a" && options.externalLinks) {
         const href = node.properties?.href;
         if (typeof href !== "string" || !SCHEME_HREF.test(href)) return;

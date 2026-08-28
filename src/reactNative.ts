@@ -2,6 +2,7 @@ import * as runtime from "react/jsx-runtime";
 import type { MDXComponents } from "mdx/types";
 import type { ComponentType, ReactElement } from "react";
 import { compileMDXCore, type FailedMDX } from "./core.js";
+import { MDXErrorBoundary } from "./MDXErrorBoundary.js";
 import {
   buildReactNativeComponents,
   type ReactNativePrimitives,
@@ -18,6 +19,9 @@ export type { FailedMDX };
 /**
  * Wires up a React Native `compileMDX` with default Text/View/Image mappings for every standard markdown element
  * (and `EntryLink`), so a project sets up its RN primitives once instead of mapping every tag on every call.
+ * A tag/component the source references but nothing maps (a typo'd custom component, a raw HTML tag RN has no
+ * native view for) is caught at render — logged via `console.error` and replaced with the raw source as
+ * plain text, instead of crashing the screen.
  */
 export function createReactNativeRenderer(
   primitives: ReactNativePrimitives,
@@ -49,9 +53,18 @@ export function createReactNativeRenderer(
           : wrapped;
       return stripWhitespaceRootChildren(rootElement);
     };
+    // A JSX component referenced in `source` but missing from `components`, or a raw HTML tag RN has
+    // no native view for, throws mid-render — RN has no DOM to silently fall back on the way web
+    // does, so catch it here instead of taking down the whole screen, and log it loudly so the
+    // content author (or whoever wired up `components`) notices and fixes it.
+    const SafeContent = (props: { components?: MDXComponents }) =>
+      runtime.jsx(MDXErrorBoundary, {
+        fallback: runtime.jsx(primitives.Text, { children: source } as never),
+        children: runtime.jsx(RootWithoutWhitespace, props as never),
+      } as never);
     return {
       ok: true,
-      Content: RootWithoutWhitespace as unknown as ComponentType<{
+      Content: SafeContent as unknown as ComponentType<{
         components?: MDXComponents;
       }>,
     };

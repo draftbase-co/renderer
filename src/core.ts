@@ -69,3 +69,12 @@ export function makeDefaultEntryLink(jsxRuntime: JsxRuntime) {
     return jsxRuntime.jsx!("a", { href: id ? `/entries/${id}` : undefined, children } as never);
   };
 }
+
+/** Default `img` for a given JSX runtime — defers offscreen image loads instead of the browser's
+ * eager default. Apps that want `next/image` (or another optimizer) override it via `components.img`;
+ * an explicit `loading`/`decoding` on the element itself (rare, but author-settable) still wins. */
+export function makeDefaultImage(jsxRuntime: JsxRuntime) {
+  return function Img(props: Record<string, unknown>) {
+    return jsxRuntime.jsx!("img", { loading: "lazy", decoding: "async", ...props } as never);
+  };
+}

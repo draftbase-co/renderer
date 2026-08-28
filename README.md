@@ -126,6 +126,8 @@ createReactNativeRenderer({ Text, View, Image }, { unstyled: true });
 
 This package never imports the `react-native` package itself — you pass its `Text`/`View`/`Image` in, so nothing RN-specific ends up in a web or Vue bundle.
 
+RN has no DOM to silently fall back on the way web does — a JSX component the source references but you didn't map (a typo'd custom component, a raw HTML tag RN has no native view for) would otherwise crash the whole screen. `Content` catches that automatically: it's logged via `console.error` and the raw source renders as plain text in place of the broken content, instead of taking down the app. No setup needed — this is on by default, unlike the web/Vue entry points where you wrap `Content` in `MDXErrorBoundary` yourself.
+
 ## Astro
 
 Astro components aren't React, so render through a React island. Compile server-side in the `.astro` frontmatter (Astro's runtime does allow `await` there), then hand the compiled `Content` to a small client React wrapper component:
@@ -290,6 +292,25 @@ function EntryLink({ id, children }: { id: string; children: React.ReactNode }) 
 <MDXContent source={entry.fields.body} components={{ EntryLink }} />;
 ```
 
+## Images
+
+A markdown image (`![alt](url)`) renders as a plain `<img loading="lazy" decoding="async">` by default — no framework-specific optimizer, so this works identically across every web/RSC/Vue target and `toHtml`. Swap in your own (e.g. Next.js's `<Image>`) by overriding `img` like any other standard element:
+
+```tsx
+import NextImage from "next/image";
+
+<MDXContent
+  source={entry.fields.body}
+  components={{
+    img: ({ src, alt }) => <NextImage src={src} alt={alt ?? ""} width={800} height={450} />,
+  }}
+/>;
+```
+
+An explicit `loading`/`decoding` written into the source (rare, but possible via raw `<img>` JSX in MDX) still wins over the default — only the no-attributes case gets the lazy default filled in.
+
+Every Draftbase asset URL — the one in an `![]()` src, or `asset.url` from `@draftbase/sdk` used outside MDX entirely — also supports on-demand resizing via query params: append `?w=800` (and/or `&h=450`) to shrink it server-side, capped to the size it was originally uploaded at (never upscales). Sizes are snapped to a fixed breakpoint set at the CDN edge, so requesting arbitrary values (`?w=803`) still hits a shared cache entry instead of minting a new one per pixel.
+
 ## Styling
 
 `@draftbase/renderer/styles.css` wraps output in a `.db-content` class with slim, sensible defaults (typography, tables, code blocks). Web-only, opt-in:
@@ -310,7 +331,7 @@ If you're an agent wiring this into a project, follow this checklist:
 2. **Pick the right entry point first** — check the target framework in the table at the top of this file, then import only that one (`@draftbase/renderer` vs `@draftbase/renderer/vue`). Importing the wrong one pulls in a peer dependency (React or Vue) the project may not have installed, and will fail to resolve.
 3. **Detect RSC support before choosing a pattern**: Next.js App Router (or another RSC framework) → use `<MDXContent source={...} />` directly, it's an async Server Component. Everything else (client-side React, React Native, Remix, Vite SPA, Vue) → use the `compileMDX(source)` + state/ref pattern shown above; do not try to `await` it inside a plain client component render.
 4. **Every `compileMDX`/`MDXContent` result is a discriminated union** — always branch on `.ok` before touching `.Content`; treat `!ok` as a real render path (show `.error` or fallback text), don't just assume success.
-5. **Non-DOM renderers (React Native, custom email/RSS pipelines) have no intrinsic HTML tags** — you must pass a `components` map covering every markdown element actually used in the source (`p`, `h1`-`h6`, `a`, `img`, `table`, ...), or those elements will fail to render. For plain HTML output (email, RSS, non-React embeds) use `toHtml` instead of a component tree.
+5. **Non-DOM renderers (React Native, custom email/RSS pipelines) have no intrinsic HTML tags** — you must pass a `components` map covering every markdown element actually used in the source (`p`, `h1`-`h6`, `a`, `img`, `table`, ...), or those elements render as an unstyled RN default (React Native's `createReactNativeRenderer` already ships styled defaults, so this mainly matters for a fully custom RN setup). React Native specifically never crashes the screen over this — an unmapped/missing component logs to `console.error` and falls back to plain text instead. For plain HTML output (email, RSS, non-React embeds) use `toHtml` instead of a component tree.
 6. **Don't hand-roll styling** — import `@draftbase/renderer/styles.css` for sensible defaults, or pass `unstyled`/`className` on `MDXContent`, rather than writing new prose/typography CSS from scratch.
 7. **This package ships zero bundled React/Vue** — both are optional peer dependencies. If the target project doesn't already have the matching framework installed, install it too or the build will fail.
 

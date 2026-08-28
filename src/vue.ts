@@ -1,5 +1,5 @@
 import type { Component } from "vue";
-import { compileMDXCore, makeDefaultEntryLink, type FailedMDX } from "./core.js";
+import { compileMDXCore, makeDefaultEntryLink, makeDefaultImage, type FailedMDX } from "./core.js";
 import { vueJsxRuntime } from "./vueRuntime.js";
 
 export interface CompiledMDX {
@@ -9,7 +9,10 @@ export interface CompiledMDX {
 
 export type { FailedMDX };
 
-const defaultComponents = { EntryLink: makeDefaultEntryLink(vueJsxRuntime) };
+const defaultComponents = {
+  EntryLink: makeDefaultEntryLink(vueJsxRuntime),
+  img: makeDefaultImage(vueJsxRuntime),
+};
 
 /**
  * Compiles raw MDX/markdown into a renderable Vue component. Vue has no RSC-style async component, so call this

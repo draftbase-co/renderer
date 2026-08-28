@@ -24,6 +24,14 @@ test("className merges onto the wrapper div, styles still inlined", async () => 
   assert.equal(html, `<style>${CSS_TEXT}</style><div class="db-content prose"><p>hi</p></div>`);
 });
 
+test("img gets lazy-loading defaults with no components option supplied", async () => {
+  const html = await toHtml("![alt text](https://example.com/a.png)", { unstyled: true });
+  assert.equal(
+    html,
+    '<p><img loading="lazy" decoding="async" src="https://example.com/a.png" alt="alt text"></p>',
+  );
+});
+
 test("supports gfm tables", async () => {
   const html = await toHtml("| a | b |\n| - | - |\n| 1 | 2 |");
   assert.match(html, /<table>/);
