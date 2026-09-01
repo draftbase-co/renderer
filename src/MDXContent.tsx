@@ -1,7 +1,14 @@
 import * as runtime from "react/jsx-runtime";
 import type { MDXComponents } from "mdx/types";
 import type { ComponentType, ElementType, ReactNode } from "react";
-import { compileMDXCore, makeDefaultEntryLink, makeDefaultImage, type FailedMDX } from "./core.js";
+import {
+  compileMDXCore,
+  makeDefaultEntryLink,
+  makeDefaultImage,
+  withEntryLinkData,
+  type FailedMDX,
+  type LinkedEntryData,
+} from "./core.js";
 import { wrapperClassName } from "./wrapperClassName.js";
 import { MDXErrorBoundary } from "./MDXErrorBoundary.js";
 import { CSS_TEXT } from "./cssText.js";
@@ -50,6 +57,11 @@ export interface MDXContentProps {
    * throws while rendering. Either way the fallback plain-text output still renders instead of
    * crashing. */
   onError?: (error: unknown) => void;
+  /** The containing entry's own `entryLinks` (from `getEntry`/`getEntries` called with `include`
+   * set) — id-keyed resolved data for every `<EntryLink id="...">` found in `source`. When given,
+   * each `EntryLink` instance receives its target's data as extra props, so `components.EntryLink`
+   * doesn't need to re-fetch it. */
+  entryLinks?: Record<string, LinkedEntryData>;
 }
 
 /**
@@ -64,10 +76,21 @@ export async function MDXContent({
   wrapperTag = "div",
   errorTag = "p",
   onError,
+  entryLinks,
 }: MDXContentProps): Promise<ReactNode> {
   const Wrapper = wrapperTag;
   const ErrorTag = errorTag;
   const wrapperClass = wrapperClassName(unstyled, className);
+  const effectiveComponents: MDXComponents | undefined = entryLinks
+    ? {
+        ...components,
+        EntryLink: withEntryLinkData(
+          components?.EntryLink ?? defaultComponents.EntryLink,
+          entryLinks,
+          runtime,
+        ) as MDXComponents["EntryLink"],
+      }
+    : components;
   // `href` + `precedence` make React DOM treat this as a de-duplicated, hoisted stylesheet
   // resource (React 19+) instead of a plain inline tag repeated per render.
   const styles = unstyled ? null : (
@@ -98,7 +121,7 @@ export async function MDXContent({
       {styles}
       <Wrapper className={wrapperClass}>
         <MDXErrorBoundary fallback={<ErrorTag>{source}</ErrorTag>} onError={onError}>
-          <Content components={components} />
+          <Content components={effectiveComponents} />
         </MDXErrorBoundary>
       </Wrapper>
     </>

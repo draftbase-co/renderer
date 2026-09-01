@@ -62,11 +62,46 @@ function withDefaultComponents(
   };
 }
 
+/** The linked entry's own resolved data — the same shape the delivery API's `getEntry`/`getEntries`
+ * attach at `entry.entryLinks[id]` when called with `include` set (optionally widened with
+ * `entryLinkFields`). Mirrors the SDK's `EntryLinkView` minus `id`, kept local so the
+ * framework-agnostic renderer doesn't depend on `@draftbase/sdk`. */
+export interface LinkedEntryData {
+  templateId: string;
+  title: string;
+  status: string;
+  fields?: Record<string, unknown>;
+}
+
+/** Props passed to `EntryLink` — the id of the linked entry, authored via the entry picker in
+ * the MDX editor, plus that entry's own resolved data when the caller passed `entryLinks` to
+ * `MDXContent`/`compileMDX` (avoids an extra per-link fetch at render time). Apps overriding
+ * `components.EntryLink` should type their component against this. */
+export interface EntryLinkProps extends Partial<LinkedEntryData> {
+  id?: string;
+  children?: unknown;
+}
+
 /** Default `EntryLink` for a given JSX runtime — renders `<a href="/entries/{id}">`; apps that
  * route entries differently override it by passing `components.EntryLink`. */
 export function makeDefaultEntryLink(jsxRuntime: JsxRuntime) {
-  return function EntryLink({ id, children }: { id?: string; children?: unknown }) {
+  return function EntryLink({ id, children }: EntryLinkProps) {
     return jsxRuntime.jsx!("a", { href: id ? `/entries/${id}` : undefined, children } as never);
+  };
+}
+
+/** Wraps `EntryLink` (custom or default) so every instance also receives its resolved
+ * `LinkedEntryData` from `entryLinks[id]` — the caller's already-fetched `getEntry`/`getEntries`
+ * result — instead of each link having to re-fetch its own target. */
+export function withEntryLinkData(
+  EntryLink: unknown,
+  entryLinks: Record<string, LinkedEntryData> | undefined,
+  jsxRuntime: JsxRuntime,
+): unknown {
+  if (!entryLinks) return EntryLink;
+  return function EntryLinkWithData(props: EntryLinkProps) {
+    const linked = props.id ? entryLinks[props.id] : undefined;
+    return jsxRuntime.jsx!(EntryLink as never, { ...props, ...linked } as never);
   };
 }
 
