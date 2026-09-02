@@ -1,11 +1,11 @@
 "use client";
 
-import { Component, type ReactNode } from "react";
+import { Component, type ErrorInfo, type ReactNode } from "react";
 
 interface MDXErrorBoundaryProps {
   children: ReactNode;
   fallback: ReactNode;
-  onError?: (error: unknown) => void;
+  onError?: (error: unknown, errorInfo: ErrorInfo) => void;
 }
 
 interface MDXErrorBoundaryState {
@@ -21,9 +21,9 @@ export class MDXErrorBoundary extends Component<MDXErrorBoundaryProps, MDXErrorB
     return { hasError: true };
   }
 
-  componentDidCatch(error: unknown) {
-    console.error("MDX content failed to render", error);
-    this.props.onError?.(error);
+  componentDidCatch(error: unknown, errorInfo: ErrorInfo) {
+    console.error("MDX content failed to render", error, errorInfo.componentStack);
+    this.props.onError?.(error, errorInfo);
   }
 
   render() {

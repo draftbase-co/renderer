@@ -76,7 +76,12 @@ export function createReactNativeRenderer(
     try {
       tree = processor.parse(source) as unknown as MdastNode;
     } catch (error) {
-      return { ok: false, error };
+      return {
+        ok: false,
+        error: new Error(`MDX parse failed (${source.length} chars): ${describeError(error)}`, {
+          cause: error,
+        }),
+      };
     }
 
     // Reference-style links/images (`[text][ref]` + a `[ref]: url` definition anywhere in the
@@ -136,12 +141,26 @@ function renderNode(node: MdastNode, ctx: RenderCtx, key: number): unknown {
   try {
     return renderNodeUnsafe(node, ctx, key);
   } catch (error) {
-    console.error("MDX content failed to render a section, showing its raw source instead", error);
+    const label = node.name ? `<${node.name}>` : node.type;
+    const wrapped = new Error(`MDX node "${label}" failed to render: ${describeError(error)}`, {
+      cause: error,
+    });
+    console.error(wrapped.message, error);
     const raw = node.position
       ? ctx.source.slice(node.position.start.offset, node.position.end.offset)
-      : `<${node.name ?? node.type}>`;
-    return jsx(ctx.components.p, { children: raw }, key);
+      : `<${label}>`;
+    try {
+      return jsx(ctx.components.p, { children: raw }, key);
+    } catch (fallbackError) {
+      throw new Error(`MDX node "${label}" failed to render and had no fallback component`, {
+        cause: fallbackError,
+      });
+    }
   }
+}
+
+function describeError(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
 }
 
 function renderNodeUnsafe(node: MdastNode, ctx: RenderCtx, key: number): unknown {
