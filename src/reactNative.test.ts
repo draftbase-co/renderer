@@ -1,7 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { createReactNativeRenderer } from "./reactNative.js";
-import { MDXErrorBoundary } from "./MDXErrorBoundary.js";
 
 interface Element {
   type: unknown;
@@ -37,9 +36,9 @@ test("React Native smoke test: renders standard markdown through Text/View with 
   assert.equal((heading.props.style as { fontSize: number }).fontSize, 28);
 });
 
-test("React Native falls back to the raw source and logs to console instead of crashing on an unknown tag", async () => {
+test("React Native swaps only the unknown tag for its raw source, logs to console, and keeps rendering its siblings", async () => {
   const { compileMDX } = createReactNativeRenderer({ Text, View, Image });
-  const result = await compileMDX("<Callout>hi</Callout>");
+  const result = await compileMDX("# Heading\n\n<Callout>hi</Callout>\n\nMore text");
   assert.equal(result.ok, true);
   if (!result.ok) return;
 
@@ -47,21 +46,20 @@ test("React Native falls back to the raw source and logs to console instead of c
   const logged: unknown[] = [];
   console.error = (...args: unknown[]) => logged.push(args);
   try {
-    // No react-dom/test-renderer in this package — drive the real MDXErrorBoundary class by
-    // hand the way React would: render children, and on throw, catch + re-render the fallback.
-    const boundaryElement = (result.Content as unknown as (props: object) => Element)({});
-    assert.equal(boundaryElement.type, MDXErrorBoundary);
-    const boundary = new MDXErrorBoundary(boundaryElement.props as never);
-    try {
-      resolve(boundaryElement.props.children as Element);
-      assert.fail("expected the missing <Callout> component to throw");
-    } catch (error) {
-      boundary.componentDidCatch(error);
-      Object.assign(boundary.state, MDXErrorBoundary.getDerivedStateFromError());
-    }
-    const fallback = resolve(boundary.render() as unknown as Element);
+    // MDXErrorBoundary never triggers here — the failure is caught per-node inside compileMDX,
+    // not left to bubble up and blank the whole document.
+    const element = resolve((result.Content as unknown as (props: object) => Element)({}));
+    const children = element.props.children as Element[];
+    assert.equal(children.length, 3);
+    assert.equal(resolve(children[0]).type, Text); // heading
+    // <Callout>hi</Callout> parses as an inline JSX child of its own paragraph, so the fallback
+    // (also Text-wrapped) sits one level inside that paragraph rather than replacing it outright.
+    const paragraph = resolve(children[1]);
+    assert.equal(paragraph.type, Text);
+    const fallback = resolve(paragraph.props.children as Element);
     assert.equal(fallback.type, Text);
     assert.equal(fallback.props.children, "<Callout>hi</Callout>");
+    assert.equal(resolve(children[2]).type, Text); // "More text" paragraph
   } finally {
     console.error = originalConsoleError;
   }
