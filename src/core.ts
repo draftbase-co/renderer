@@ -62,7 +62,6 @@ function withDefaultComponents(
         ...props,
         components: withMissingComponentFallback(
           { ...defaults, ...props?.components },
-          jsxRuntime,
           jsxTagNames,
         ),
       } as never,
@@ -72,28 +71,26 @@ function withDefaultComponents(
 
 // Compiled MDX throws "Expected component `X` to be defined" the moment it renders a JSX tag with
 // no matching (truthy) entry in `components` — one stale/typo'd/template-mismatched tag otherwise
-// crashes the whole page (and, in a static export, the whole build). Only intercept lookups for
-// tag names the source actually uses as JSX (from `jsxTagNames`) — `components` is also probed by
-// mdx-js itself for unrelated keys (the optional `wrapper` layout, every intrinsic markdown
-// element's default-tag fallback) that must pass through untouched.
+// crashes the whole page (and, in a static export, the whole build). Only fill in tag names the
+// source actually uses as JSX (from `jsxTagNames`) — `components` is also probed by mdx-js itself
+// for unrelated keys (the optional `wrapper` layout, every intrinsic markdown element's
+// default-tag fallback) that must pass through untouched. A plain object (not a Proxy) so it
+// still works once mdx-js's own compiled output spreads it into a fresh object.
 function withMissingComponentFallback(
   components: Record<string, unknown>,
-  jsxRuntime: JsxRuntime,
   jsxTagNames: Set<string>,
 ): Record<string, unknown> {
-  if (jsxTagNames.size === 0) return components;
-  return new Proxy(components, {
-    get(target, prop, receiver) {
-      const value = Reflect.get(target, prop, receiver);
-      if (value || typeof prop !== "string" || !jsxTagNames.has(prop)) return value;
-      console.error(
-        `MDX component "${prop}" isn't registered for this render — omitting it instead of failing the page. Register it in \`components\` to fix.`,
-      );
-      return function MissingComponentFallback() {
-        return null;
-      };
-    },
-  });
+  const result = { ...components };
+  for (const name of jsxTagNames) {
+    if (result[name]) continue;
+    console.error(
+      `MDX component "${name}" isn't registered for this render — omitting it instead of failing the page. Register it in \`components\` to fix.`,
+    );
+    result[name] = function MissingComponentFallback() {
+      return null;
+    };
+  }
+  return result;
 }
 
 // Custom JSX tag names (e.g. `LocalSpotlightSection` in `<LocalSpotlightSection />`) referenced in

@@ -12,9 +12,9 @@ interface Element {
 
 /** Content is wrapped to merge in default components (see core.ts) — unwrap by invoking each
  * function-typed element until reaching real output (no renderer mounted). */
-function resolve(element: Element): Element {
-  return typeof element.type === "function"
-    ? resolve((element.type as (props: object) => Element)(element.props))
+function resolve(element: Element | null): Element | null {
+  return element && typeof element.type === "function"
+    ? resolve((element.type as (props: object) => Element | null)(element.props))
     : element;
 }
 
@@ -95,4 +95,16 @@ test("a supplied EntryLink override still wins over the default", async () => {
     }),
   );
   assert.equal(link.type, "custom-entry-link");
+});
+
+test("an unregistered custom component omits itself instead of crashing the page", async () => {
+  const result = await compileReactMDX("# Title\n\n<LocalSpotlightSection />\n\nAfter");
+  assert.equal(result.ok, true);
+  if (!result.ok) return;
+  const tree = resolve((result.Content as unknown as (props: object) => Element)({}));
+  const children = (tree.props.children as unknown[]).filter(
+    (child): child is Element => typeof child === "object" && child !== null,
+  );
+  const types = children.map((child) => resolve(child)).map((child) => child?.type ?? null);
+  assert.deepEqual(types, ["h1", null, "p"]);
 });
