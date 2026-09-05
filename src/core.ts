@@ -1,5 +1,8 @@
 import { evaluate } from "@mdx-js/mdx";
 import type { EvaluateOptions } from "@mdx-js/mdx";
+import { unified } from "unified";
+import remarkParse from "remark-parse";
+import remarkMdx from "remark-mdx";
 import remarkGfm from "remark-gfm";
 import rehypeSlug from "rehype-slug";
 
@@ -31,7 +34,7 @@ export async function compileMDXCore<TComponent>(
       rehypePlugins: [rehypeSlug],
     });
     const OutputContent = defaultComponents
-      ? withDefaultComponents(Content, defaultComponents, jsxRuntime)
+      ? withDefaultComponents(Content, defaultComponents, jsxRuntime, collectJsxTagNames(source))
       : Content;
     // evaluate()'s return type assumes React's JSX types regardless of the runtime
     // passed in; TComponent reflects the actual shape for the calling framework.
@@ -50,16 +53,74 @@ function withDefaultComponents(
   Content: unknown,
   defaults: Record<string, unknown>,
   jsxRuntime: JsxRuntime,
+  jsxTagNames: Set<string>,
 ) {
   return function ContentWithDefaults(props: ContentProps) {
     return jsxRuntime.jsx!(
       Content as never,
       {
         ...props,
-        components: { ...defaults, ...props?.components },
+        components: withMissingComponentFallback(
+          { ...defaults, ...props?.components },
+          jsxRuntime,
+          jsxTagNames,
+        ),
       } as never,
     );
   };
+}
+
+// Compiled MDX throws "Expected component `X` to be defined" the moment it renders a JSX tag with
+// no matching (truthy) entry in `components` — one stale/typo'd/template-mismatched tag otherwise
+// crashes the whole page (and, in a static export, the whole build). Only intercept lookups for
+// tag names the source actually uses as JSX (from `jsxTagNames`) — `components` is also probed by
+// mdx-js itself for unrelated keys (the optional `wrapper` layout, every intrinsic markdown
+// element's default-tag fallback) that must pass through untouched.
+function withMissingComponentFallback(
+  components: Record<string, unknown>,
+  jsxRuntime: JsxRuntime,
+  jsxTagNames: Set<string>,
+): Record<string, unknown> {
+  if (jsxTagNames.size === 0) return components;
+  return new Proxy(components, {
+    get(target, prop, receiver) {
+      const value = Reflect.get(target, prop, receiver);
+      if (value || typeof prop !== "string" || !jsxTagNames.has(prop)) return value;
+      console.error(
+        `MDX component "${prop}" isn't registered for this render — omitting it instead of failing the page. Register it in \`components\` to fix.`,
+      );
+      return function MissingComponentFallback() {
+        return null;
+      };
+    },
+  });
+}
+
+// Custom JSX tag names (e.g. `LocalSpotlightSection` in `<LocalSpotlightSection />`) referenced in
+// the raw source — used to scope the missing-component fallback to only real component lookups.
+function collectJsxTagNames(source: string): Set<string> {
+  const names = new Set<string>();
+  try {
+    const tree = unified().use(remarkParse).use(remarkMdx).parse(source);
+    walk(tree as MdastJsxNode);
+  } catch {
+    // Source that fails this throwaway parse also fails `evaluate()` above, which already
+    // reports the error — nothing to collect either way.
+  }
+  return names;
+
+  function walk(node: MdastJsxNode): void {
+    if ((node.type === "mdxJsxFlowElement" || node.type === "mdxJsxTextElement") && node.name) {
+      names.add(node.name);
+    }
+    for (const child of node.children ?? []) walk(child);
+  }
+}
+
+interface MdastJsxNode {
+  type: string;
+  name?: string | null;
+  children?: MdastJsxNode[];
 }
 
 /** The linked entry's own resolved data — the same shape the delivery API's `getEntry`/`getEntries`
