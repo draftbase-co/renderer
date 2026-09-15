@@ -22,7 +22,7 @@ test("react compileMDX evaluates MDX into a React element tree", async () => {
   const result = await compileReactMDX(SOURCE);
   assert.equal(result.ok, true);
   if (!result.ok) return;
-  const element = resolve((result.Content as unknown as (props: object) => Element)({}));
+  const element = resolve((result.Content as unknown as (props: object) => Element)({}))!;
   assert.equal(((element.props.children as Element[])[0] as Element).type, "h1");
 });
 
@@ -30,7 +30,7 @@ test("vue compileMDX evaluates the same MDX source into a Vue vnode tree", async
   const result = await compileVueMDX(SOURCE);
   assert.equal(result.ok, true);
   if (!result.ok) return;
-  const vnode = resolve((result.Content as unknown as (props: object) => Element)({}));
+  const vnode = resolve((result.Content as unknown as (props: object) => Element)({}))!;
   assert.equal(((vnode as unknown as { children: Element[] }).children[0] as Element).type, "h1");
 });
 
@@ -38,7 +38,7 @@ test("react EntryLink renders as a link to /entries/{id} with no components map 
   const result = await compileReactMDX('<EntryLink id="abc123">Read more</EntryLink>');
   assert.equal(result.ok, true);
   if (!result.ok) return;
-  const link = resolve((result.Content as unknown as (props: object) => Element)({}));
+  const link = resolve((result.Content as unknown as (props: object) => Element)({}))!;
   assert.equal(link.type, "a");
   assert.equal(link.props.href, "/entries/abc123");
 });
@@ -47,7 +47,7 @@ test("vue EntryLink renders as a link to /entries/{id} with no components map su
   const result = await compileVueMDX('<EntryLink id="abc123">Read more</EntryLink>');
   assert.equal(result.ok, true);
   if (!result.ok) return;
-  const link = resolve((result.Content as unknown as (props: object) => Element)({}));
+  const link = resolve((result.Content as unknown as (props: object) => Element)({}))!;
   assert.equal(link.type, "a");
   assert.equal(link.props.href, "/entries/abc123");
 });
@@ -55,14 +55,14 @@ test("vue EntryLink renders as a link to /entries/{id} with no components map su
 // A standalone `![]()` compiles to a <p><img/></p> — resolve the paragraph, then its one child.
 function imgFrom(paragraph: Element): Element {
   const child = paragraph.props.children as Element | Element[];
-  return resolve(Array.isArray(child) ? (child[0] as Element) : child);
+  return resolve(Array.isArray(child) ? (child[0] as Element) : child)!;
 }
 
 test("react img gets lazy-loading defaults with no components map supplied", async () => {
   const result = await compileReactMDX("![alt text](https://example.com/a.png)");
   assert.equal(result.ok, true);
   if (!result.ok) return;
-  const paragraph = resolve((result.Content as unknown as (props: object) => Element)({}));
+  const paragraph = resolve((result.Content as unknown as (props: object) => Element)({}))!;
   const img = imgFrom(paragraph);
   assert.equal(img.type, "img");
   assert.equal(img.props.loading, "lazy");
@@ -79,7 +79,7 @@ test("a supplied img override still wins over the default", async () => {
     (result.Content as unknown as (props: { components: object }) => Element)({
       components: { img: CustomImage },
     }),
-  );
+  )!;
   const img = imgFrom(paragraph);
   assert.equal(img.type, "custom-image");
 });
@@ -93,7 +93,7 @@ test("a supplied EntryLink override still wins over the default", async () => {
     (result.Content as unknown as (props: { components: object }) => Element)({
       components: { EntryLink: CustomEntryLink },
     }),
-  );
+  )!;
   assert.equal(link.type, "custom-entry-link");
 });
 
@@ -101,7 +101,7 @@ test("an unregistered custom component omits itself instead of crashing the page
   const result = await compileReactMDX("# Title\n\n<LocalSpotlightSection />\n\nAfter");
   assert.equal(result.ok, true);
   if (!result.ok) return;
-  const tree = resolve((result.Content as unknown as (props: object) => Element)({}));
+  const tree = resolve((result.Content as unknown as (props: object) => Element)({}))!;
   const children = (tree.props.children as unknown[]).filter(
     (child): child is Element => typeof child === "object" && child !== null,
   );
