@@ -40,8 +40,17 @@ export interface ToHtmlOptions {
 
 const SCHEME_HREF = /^[a-z][a-z0-9+.-]*:/i;
 
+// MDX attribute values are author-supplied — a literal `"` would break out of the attribute.
+const escapeAttr = (value: string) => value.replace(/&/g, "&amp;").replace(/"/g, "&quot;");
+
 const defaultEntryLink: ToHtmlComponent = (props, childrenHtml) =>
-  `<a href="/entries/${props.id ?? ""}">${childrenHtml}</a>`;
+  `<a href="/entries/${escapeAttr(props.id ?? "")}">${childrenHtml}</a>`;
+
+// Authors embed video as `<Video src poster duration />` — markdown has no native video syntax.
+const defaultVideo: ToHtmlComponent = (props) =>
+  `<video controls preload="metadata" playsinline${
+    props.src ? ` src="${escapeAttr(props.src)}"` : ""
+  }${props.poster ? ` poster="${escapeAttr(props.poster)}"` : ""}></video>`;
 
 function hastPropsToStrings(properties?: Record<string, unknown>): Record<string, string> {
   const props: Record<string, string> = {};
@@ -55,9 +64,11 @@ function hastPropsToStrings(properties?: Record<string, unknown>): Record<string
 function rehypeDraftbase(options: ToHtmlOptions) {
   const componentsByTag = options.components
     ? new Map(
-        Object.entries({ EntryLink: defaultEntryLink, ...options.components }).map(
-          ([name, render]) => [name.toLowerCase(), render] as const,
-        ),
+        Object.entries({
+          EntryLink: defaultEntryLink,
+          Video: defaultVideo,
+          ...options.components,
+        }).map(([name, render]) => [name.toLowerCase(), render] as const),
       )
     : undefined;
 

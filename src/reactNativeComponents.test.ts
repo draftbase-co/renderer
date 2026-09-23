@@ -48,6 +48,17 @@ test("img wrapper passes src through as Image's source.uri", () => {
   assert.equal(props.accessibilityLabel, "a");
 });
 
+test("Video is omitted when no Video primitive is supplied", () => {
+  const components = buildReactNativeComponents({ Text, View, Image });
+  assert.equal(components.Video, undefined);
+});
+
+test("Video primitive is used as-is when supplied (no default styling to apply)", () => {
+  const Video = () => null;
+  const components = buildReactNativeComponents({ Text, View, Image, Video });
+  assert.equal(components.Video, Video);
+});
+
 test("a and EntryLink both render as styled Text", () => {
   const components = buildReactNativeComponents({ Text, View, Image });
   assert.equal(components.EntryLink, components.a);

@@ -6,6 +6,11 @@ export interface ReactNativePrimitives {
   Text: ComponentType<{ children?: ReactNode; style?: unknown }>;
   View: ComponentType<{ children?: ReactNode; style?: unknown }>;
   Image: ComponentType<{ source: { uri?: string }; accessibilityLabel?: string; style?: unknown }>;
+  /** Optional — this package never imports a native video player itself. Wire it to your app's
+   * own player (e.g. `expo-video`'s `VideoView` bound to a `useVideoPlayer`, or
+   * `react-native-video`) to enable `<Video src poster duration />` in MDX source. Omit it and
+   * any `<Video>` tag falls through to the same missing-component handling as an unknown tag. */
+  Video?: ComponentType<{ src?: string; poster?: string; duration?: string; style?: unknown }>;
 }
 
 export interface ReactNativeStyleOptions {
@@ -22,7 +27,7 @@ export interface ReactNativeStyleOptions {
  * host tags for `p`/`h1`/`a`/etc the way web React does, so every standard markdown element needs an explicit mapping.
  */
 export function buildReactNativeComponents(
-  { Text, View, Image }: ReactNativePrimitives,
+  { Text, View, Image, Video }: ReactNativePrimitives,
   { unstyled, styles }: ReactNativeStyleOptions = {},
 ) {
   const styleFor = (tag: string) =>
@@ -66,7 +71,10 @@ export function buildReactNativeComponents(
     "a",
   );
 
+  const VideoTag = Video ? styled(Video as ComponentType<{ style?: unknown }>, "video") : undefined;
+
   return {
+    ...(VideoTag ? { Video: VideoTag } : {}),
     p: styled(Text, "p"),
     h1: styled(Text, "h1"),
     h2: styled(Text, "h2"),

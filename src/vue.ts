@@ -1,5 +1,11 @@
 import type { Component } from "vue";
-import { compileMDXCore, makeDefaultEntryLink, makeDefaultImage, type FailedMDX } from "./core.js";
+import {
+  compileMDXCore,
+  makeDefaultEntryLink,
+  makeDefaultImage,
+  makeDefaultVideo,
+  type FailedMDX,
+} from "./core.js";
 import { vueJsxRuntime } from "./vueRuntime.js";
 
 export interface CompiledMDX {
@@ -12,6 +18,7 @@ export type { FailedMDX };
 const defaultComponents = {
   EntryLink: makeDefaultEntryLink(vueJsxRuntime),
   img: makeDefaultImage(vueJsxRuntime),
+  Video: makeDefaultVideo(vueJsxRuntime),
 };
 
 /**

@@ -171,3 +171,18 @@ export function makeDefaultImage(jsxRuntime: JsxRuntime) {
     return jsxRuntime.jsx!("img", { loading: "lazy", decoding: "async", ...props } as never);
   };
 }
+
+/** Default `Video` for a given JSX runtime — authors embed it as `<Video src poster duration />`
+ * (markdown has no native video syntax, so this is a custom JSX tag like `EntryLink`, not a
+ * markdown-element override like `img`). Renders a plain `<video controls preload="metadata"
+ * playsInline>` — apps wanting a lazy-loaded/CLS-safe embed override it via `components.Video`. */
+export function makeDefaultVideo(jsxRuntime: JsxRuntime) {
+  return function Video(props: Record<string, unknown>) {
+    return jsxRuntime.jsx!("video", {
+      controls: true,
+      preload: "metadata",
+      playsInline: true,
+      ...props,
+    } as never);
+  };
+}

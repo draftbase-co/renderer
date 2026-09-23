@@ -5,6 +5,7 @@ import {
   compileMDXCore,
   makeDefaultEntryLink,
   makeDefaultImage,
+  makeDefaultVideo,
   withEntryLinkData,
   type FailedMDX,
   type LinkedEntryData,
@@ -23,6 +24,7 @@ export type { FailedMDX };
 const defaultComponents = {
   EntryLink: makeDefaultEntryLink(runtime),
   img: makeDefaultImage(runtime),
+  Video: makeDefaultVideo(runtime),
 };
 
 /**

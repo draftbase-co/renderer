@@ -70,6 +70,17 @@ test("react img gets lazy-loading defaults with no components map supplied", asy
   assert.equal(img.props.src, "https://example.com/a.png");
 });
 
+test("react Video gets controls/preload defaults with no components map supplied", async () => {
+  const result = await compileReactMDX('<Video src="https://example.com/a.mp4" />');
+  assert.equal(result.ok, true);
+  if (!result.ok) return;
+  const video = resolve((result.Content as unknown as (props: object) => Element)({}))!;
+  assert.equal(video.type, "video");
+  assert.equal(video.props.controls, true);
+  assert.equal(video.props.preload, "metadata");
+  assert.equal(video.props.src, "https://example.com/a.mp4");
+});
+
 test("a supplied img override still wins over the default", async () => {
   const result = await compileReactMDX("![alt text](https://example.com/a.png)");
   assert.equal(result.ok, true);

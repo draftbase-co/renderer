@@ -48,6 +48,17 @@ test("EntryLink defaults to /entries/{id} once components is passed", async () =
   assert.match(html, /<a href="\/entries\/abc">Post<\/a>/);
 });
 
+test("Video defaults to a controls/preload video tag once components is passed", async () => {
+  const html = await toHtml(
+    '<Video src="https://example.com/a.mp4" poster="https://example.com/a.jpg"></Video>',
+    { components: {} },
+  );
+  assert.match(
+    html,
+    /<video controls preload="metadata" playsinline src="https:\/\/example\.com\/a\.mp4" poster="https:\/\/example\.com\/a\.jpg"><\/video>/,
+  );
+});
+
 test("components renders a custom tag, keyed case-insensitively, with string props", async () => {
   const html = await toHtml('<Callout type="warning">Careful</Callout>', {
     components: {
