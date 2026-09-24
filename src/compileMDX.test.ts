@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { compileMDX as compileReactMDX } from "./MDXContent.js";
 import { compileMDX as compileVueMDX } from "./vue.js";
+import { scanMdxJsxTags } from "./core.js";
 
 const SOURCE = "# Hello\n\nWorld";
 
@@ -106,6 +107,20 @@ test("a supplied EntryLink override still wins over the default", async () => {
     }),
   )!;
   assert.equal(link.type, "custom-entry-link");
+});
+
+test("scanMdxJsxTags collects every custom JSX tag name referenced in the source", () => {
+  const result = scanMdxJsxTags(
+    '# Title\n\n<FastFactsSection foo="bar" />\n\n<EntryLink id="a" />',
+  );
+  assert.equal(result.ok, true);
+  if (!result.ok) return;
+  assert.deepEqual([...result.tagNames].sort(), ["EntryLink", "FastFactsSection"]);
+});
+
+test("scanMdxJsxTags reports a parse failure instead of throwing", () => {
+  const result = scanMdxJsxTags("<Unclosed");
+  assert.equal(result.ok, false);
 });
 
 test("an unregistered custom component omits itself instead of crashing the page", async () => {

@@ -96,21 +96,41 @@ function withMissingComponentFallback(
 // Custom JSX tag names (e.g. `LocalSpotlightSection` in `<LocalSpotlightSection />`) referenced in
 // the raw source — used to scope the missing-component fallback to only real component lookups.
 function collectJsxTagNames(source: string): Set<string> {
-  const names = new Set<string>();
+  const result = scanMdxJsxTags(source);
+  // Source that fails this throwaway parse also fails `evaluate()` above, which already
+  // reports the error — nothing to collect either way.
+  return result.ok ? result.tagNames : new Set();
+}
+
+export interface MdxTagScan {
+  ok: true;
+  tagNames: Set<string>;
+}
+
+export interface FailedMdxTagScan {
+  ok: false;
+  error: unknown;
+}
+
+/** Parses `source` as MDX (no evaluation, no JSX runtime required) and collects every custom JSX
+ * tag name it references — e.g. `FastFactsSection` in `<FastFactsSection />`. Used to validate MDX
+ * server-side (does it parse, do all referenced tags resolve to a known component) without needing
+ * a React/RN/Vue runtime to `evaluate()` against. */
+export function scanMdxJsxTags(source: string): MdxTagScan | FailedMdxTagScan {
   try {
     const tree = unified().use(remarkParse).use(remarkMdx).parse(source);
+    const tagNames = new Set<string>();
     walk(tree as MdastJsxNode);
-  } catch {
-    // Source that fails this throwaway parse also fails `evaluate()` above, which already
-    // reports the error — nothing to collect either way.
-  }
-  return names;
+    return { ok: true, tagNames };
 
-  function walk(node: MdastJsxNode): void {
-    if ((node.type === "mdxJsxFlowElement" || node.type === "mdxJsxTextElement") && node.name) {
-      names.add(node.name);
+    function walk(node: MdastJsxNode): void {
+      if ((node.type === "mdxJsxFlowElement" || node.type === "mdxJsxTextElement") && node.name) {
+        tagNames.add(node.name);
+      }
+      for (const child of node.children ?? []) walk(child);
     }
-    for (const child of node.children ?? []) walk(child);
+  } catch (error) {
+    return { ok: false, error };
   }
 }
 
