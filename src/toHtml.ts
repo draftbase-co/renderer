@@ -61,19 +61,54 @@ function hastPropsToStrings(properties?: Record<string, unknown>): Record<string
   return props;
 }
 
-function rehypeDraftbase(options: ToHtmlOptions) {
-  const componentsByTag = options.components
-    ? new Map(
-        Object.entries({
-          EntryLink: defaultEntryLink,
-          Video: defaultVideo,
-          ...options.components,
-        }).map(([name, render]) => [name.toLowerCase(), render] as const),
-      )
-    : undefined;
+type ComponentMap = Map<string, ToHtmlComponent>;
+
+function buildComponentMap(components: Record<string, ToHtmlComponent>): ComponentMap {
+  return new Map(
+    Object.entries({ EntryLink: defaultEntryLink, Video: defaultVideo, ...components }).map(
+      ([name, render]) => [name.toLowerCase(), render] as const,
+    ),
+  );
+}
+
+interface MdastNode {
+  type: string;
+  value?: string;
+  children?: MdastNode[];
+}
+
+const SELF_CLOSING_TAG =
+  /<([A-Za-z][\w-]*)((?:\s+[^\s"'=<>/]+(?:\s*=\s*(?:"[^"]*"|'[^']*'|[^\s"'=<>`]+))?)*)\s*\/>/g;
+
+// HTML parsers (parse5 via rehype-raw) ignore `/>` on non-void elements, so `<Cta />` would
+// swallow every following sibling as its children. Rewrite to paired form before parsing.
+function remarkComponentTags(componentsByTag: ComponentMap) {
+  return (tree: MdastNode) => {
+    function transform(node: MdastNode): void {
+      if (node.type === "html" && node.value) {
+        node.value = node.value.replace(SELF_CLOSING_TAG, (tag, name: string, attrs: string) =>
+          componentsByTag.has(name.toLowerCase()) ? `<${name}${attrs}></${name}>` : tag,
+        );
+      }
+      for (const child of node.children ?? []) transform(child);
+    }
+    transform(tree);
+  };
+}
+
+function rehypeDraftbase(options: ToHtmlOptions, componentsByTag?: ComponentMap) {
+  // A paragraph holding only one component renders it as a flow node, like MDX does —
+  // otherwise block output lands inside `<p>` and browsers split it.
+  function unwrapLoneComponent(node: HastElement): HastElement {
+    if (node.tagName !== "p") return node;
+    const content = node.children?.filter((c) => c.type !== "text" || c.value?.trim());
+    const only = content?.length === 1 ? content[0] : undefined;
+    return only?.tagName && componentsByTag?.has(only.tagName) ? only : node;
+  }
 
   return (tree: HastElement) => {
     function transform(node: HastElement): void {
+      node.children = node.children?.map(unwrapLoneComponent);
       for (const child of node.children ?? []) transform(child);
       if (node.type !== "element" || !node.tagName) return;
 
@@ -125,15 +160,14 @@ function rehypeDraftbase(options: ToHtmlOptions) {
  * `@draftbase/renderer/styles.css` yourself once if that matters. No React, no mounted tree —
  * use `compileMDX`/`MDXContent` instead when you need a React tree. */
 export async function toHtml(source: string, options: ToHtmlOptions = {}): Promise<string> {
-  const needsRawParse = Boolean(options.components);
-  const processor = unified()
-    .use(remarkParse)
-    .use(remarkGfm)
-    .use(remarkRehype, { allowDangerousHtml: true });
-  if (needsRawParse) processor.use(rehypeRaw);
+  const componentsByTag = options.components && buildComponentMap(options.components);
+  const processor = unified().use(remarkParse).use(remarkGfm);
+  if (componentsByTag) processor.use(remarkComponentTags, componentsByTag);
+  processor.use(remarkRehype, { allowDangerousHtml: true });
+  if (componentsByTag) processor.use(rehypeRaw);
   processor
     .use(rehypeSlug)
-    .use(rehypeDraftbase, options)
+    .use(rehypeDraftbase, options, componentsByTag)
     .use(rehypeStringify, { allowDangerousHtml: true });
 
   const file = await processor.process(source);

@@ -86,6 +86,35 @@ test("components resolves nested custom tags before serializing the parent's chi
   assert.match(html, /<div><a href="\/entries\/abc">Post<\/a><\/div>/);
 });
 
+const cta = { components: { Cta: () => "<div>cta</div>" }, unstyled: true };
+
+test("a self-closing component keeps the paragraphs after it", async () => {
+  const html = await toHtml("A\n\n<Cta />\n\nB\n\nC", cta);
+  assert.equal(html.replace(/\n/g, ""), "<p>A</p><div>cta</div><p>B</p><p>C</p>");
+});
+
+test("a self-closing component mid-sentence keeps the trailing text", async () => {
+  assert.equal(await toHtml("Mid <Cta /> text.", cta), "<p>Mid <div>cta</div> text.</p>");
+});
+
+test("two self-closing components render with nothing lost between or after", async () => {
+  const html = await toHtml('A <Cta /> B\n\n<Video src="x.mp4" />\n\nC <Cta /> D', cta);
+  assert.match(html, /<p>A <div>cta<\/div> B<\/p>/);
+  assert.match(html, /<video[^>]*src="x.mp4"><\/video>/);
+  assert.match(html, /<p>C <div>cta<\/div> D<\/p>/);
+});
+
+test("a component alone on its line isn't wrapped in <p>, inline ones stay wrapped", async () => {
+  for (const source of ["<Cta></Cta>", "<Cta />", "<Cta>**x**</Cta>"]) {
+    assert.equal(
+      (await toHtml(`A\n\n${source}\n\nB`, cta)).replace(/\n/g, ""),
+      "<p>A</p><div>cta</div><p>B</p>",
+    );
+  }
+  const links = '<EntryLink id="a">x</EntryLink> and <EntryLink id="b">y</EntryLink>';
+  assert.match(await toHtml(links, cta), /^<p><a href="\/entries\/a">x<\/a> and .*<\/p>$/);
+});
+
 test("a component that throws leaves the tag as literal HTML and calls onError", async () => {
   const errors: Array<[unknown, string]> = [];
   const html = await toHtml('<Callout type="warning">Careful</Callout>', {
