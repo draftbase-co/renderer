@@ -41,3 +41,9 @@ test("falls back to plain text when the source fails to compile as MDX", async (
   assert.equal(fallback.type, "p");
   assert.equal(fallback.props.children, "<broken");
 });
+
+test("a custom fallback replaces the raw source in the error boundary", async () => {
+  const fragment = (await MDXContent({ source: "# Hello", fallback: null })) as unknown as Element;
+  const boundary = wrapperOf(fragment).props.children as Element;
+  assert.equal(boundary.props.fallback, null);
+});

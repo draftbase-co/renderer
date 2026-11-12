@@ -59,6 +59,10 @@ export interface MDXContentProps {
    * throws while rendering. Either way the fallback plain-text output still renders instead of
    * crashing. */
   onError?: (error: unknown) => void;
+  /** Rendered instead of the raw `source` when a component throws while rendering. The default
+   * (`source` as plain text) is serialized into the RSC payload on every render, so pass e.g.
+   * `null` to keep large sources out of it. */
+  fallback?: ReactNode;
   /** The containing entry's own `entryLinks` (from `getEntry`/`getEntries` called with `include`
    * set) — id-keyed resolved data for every `<EntryLink id="...">` found in `source`. When given,
    * each `EntryLink` instance receives its target's data as extra props, so `components.EntryLink`
@@ -78,6 +82,7 @@ export async function MDXContent({
   wrapperTag = "div",
   errorTag = "p",
   onError,
+  fallback,
   entryLinks,
 }: MDXContentProps): Promise<ReactNode> {
   const Wrapper = wrapperTag;
@@ -122,7 +127,10 @@ export async function MDXContent({
     <>
       {styles}
       <Wrapper className={wrapperClass}>
-        <MDXErrorBoundary fallback={<ErrorTag>{source}</ErrorTag>} onError={onError}>
+        <MDXErrorBoundary
+          fallback={fallback === undefined ? <ErrorTag>{source}</ErrorTag> : fallback}
+          onError={onError}
+        >
           <Content components={effectiveComponents} />
         </MDXErrorBoundary>
       </Wrapper>
